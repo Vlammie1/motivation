@@ -143,7 +143,7 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
             const fileName = `${user.id}-${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            const { data, error } = await supabase.storage
+            const { error } = await supabase.storage
                 .from('Lock in beat')
                 .upload(filePath, file);
 
