@@ -19,9 +19,9 @@ import useLocalStorage from './hooks/useLocalStorage';
 
 function MainTool() {
   const { user, loading: authLoading } = useAuth();
-  const { tasks, loading: tasksLoading } = useSupabaseTasks();
+  const { tasks, loading: tasksLoading, toggleTask } = useSupabaseTasks();
   const { profile } = useSupabaseProfile();
-  const [lastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
+  const [lastCompletionTime, setLastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
   const [isLockInActive, setIsLockInActive] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
 
@@ -37,6 +37,13 @@ function MainTool() {
       setShowVictory(false);
     }
   }, [isComplete]);
+
+  const handleTaskToggle = async (id: string, completed: boolean) => {
+    await toggleTask(id, completed);
+    if (completed) {
+      setLastCompletionTime(Date.now());
+    }
+  };
 
   const handleLockIn = () => {
     setIsLockInActive(true);
@@ -105,7 +112,7 @@ function MainTool() {
         marginBottom: 'var(--spacing-lg)',
         marginTop: 'var(--spacing-md)'
       }}>
-        <TaskList />
+        <TaskList onTaskToggle={handleTaskToggle} />
       </div>
 
       <ShameClock lastCompletionTime={lastCompletionTime} />

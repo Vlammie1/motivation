@@ -16,67 +16,90 @@ export const useSupabaseWorkLogs = () => {
     const [loading, setLoading] = useState(true);
 
     const fetchWorkLogs = async () => {
-        if (!user) return;
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('work_logs')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (error) {
-            console.error('Error fetching work logs:', error);
-        } else {
-            const logs: Record<string, number> = {};
-            data?.forEach(log => {
-                logs[log.work_date] = Number(log.hours);
-            });
-            setWorkLogs(logs);
-        }
-        setLoading(false);
-    };
-
-    useEffect(() => {
         if (!user) {
+            console.log('No user, skipping work logs fetch');
             setLoading(false);
             setWorkLogs({});
             return;
         }
+
+        console.log('Fetching work logs for user:', user.id);
+        setLoading(true);
+
+        try {
+            const { data, error } = await supabase
+                .from('work_logs')
+                .select('*')
+                .eq('user_id', user.id);
+
+            if (error) {
+                console.error('Error fetching work logs:', error);
+                setWorkLogs({});
+            } else {
+                const logs: Record<string, number> = {};
+                data?.forEach(log => {
+                    logs[log.work_date] = Number(log.hours);
+                });
+                console.log('Work logs fetched:', Object.keys(logs).length);
+                setWorkLogs(logs);
+            }
+        } catch (err) {
+            console.error('Unexpected error fetching work logs:', err);
+            setWorkLogs({});
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchWorkLogs();
-    }, [user]);
+    }, [user?.id]); // Only re-fetch when user ID changes
 
     const upsertWorkLog = async (date: string, hours: number) => {
-        if (!user) return;
-
-        // Check if entry exists for this date
-        const { data: existing } = await supabase
-            .from('work_logs')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('work_date', date)
-            .single();
-
-        let error;
-        if (existing) {
-            const { error: updateError } = await supabase
-                .from('work_logs')
-                .update({ hours })
-                .eq('id', existing.id);
-            error = updateError;
-        } else {
-            const { error: insertError } = await supabase
-                .from('work_logs')
-                .insert({
-                    user_id: user.id,
-                    work_date: date,
-                    hours
-                });
-            error = insertError;
+        if (!user) {
+            console.error('Cannot upsert work log: no user');
+            return;
         }
 
-        if (error) {
-            console.error('Error upserting work log:', error);
-        } else {
-            setWorkLogs(prev => ({ ...prev, [date]: hours }));
+        console.log('Upserting work log:', date, hours);
+
+        try {
+            // Check if entry exists for this date
+            const { data: existing } = await supabase
+                .from('work_logs')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('work_date', date)
+                .maybeSingle();
+
+            let error;
+            if (existing) {
+                const { error: updateError } = await supabase
+                    .from('work_logs')
+                    .update({ hours })
+                    .eq('id', existing.id);
+                error = updateError;
+            } else {
+                const { error: insertError } = await supabase
+                    .from('work_logs')
+                    .insert({
+                        user_id: user.id,
+                        work_date: date,
+                        hours
+                    });
+                error = insertError;
+            }
+
+            if (error) {
+                console.error('Error upserting work log:', error);
+                alert('Failed to save work log: ' + error.message);
+            } else {
+                console.log('Work log saved successfully');
+                setWorkLogs(prev => ({ ...prev, [date]: hours }));
+            }
+        } catch (err) {
+            console.error('Unexpected error upserting work log:', err);
+            alert('Failed to save work log: ' + err);
         }
     };
 

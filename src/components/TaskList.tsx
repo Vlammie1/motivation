@@ -3,7 +3,11 @@ import { TaskItem } from './TaskItem';
 import { useSupabaseTasks } from '../hooks/useSupabaseTasks';
 import { Loader2 } from 'lucide-react';
 
-export const TaskList: React.FC = () => {
+interface TaskListProps {
+    onTaskToggle?: (id: string, completed: boolean) => Promise<void>;
+}
+
+export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
     const { tasks, loading, addTask, toggleTask, deleteTask } = useSupabaseTasks();
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskWhy, setNewTaskWhy] = useState('');
@@ -15,6 +19,14 @@ export const TaskList: React.FC = () => {
         await addTask(newTaskText, newTaskWhy);
         setNewTaskText('');
         setNewTaskWhy('');
+    };
+
+    const handleToggle = async (id: string, completed: boolean) => {
+        if (onTaskToggle) {
+            await onTaskToggle(id, completed);
+        } else {
+            await toggleTask(id, completed);
+        }
     };
 
     if (loading) {
@@ -101,10 +113,10 @@ export const TaskList: React.FC = () => {
                             task={{
                                 id: task.id,
                                 text: task.title,
-                                why: task.why,
+                                why: task.description,
                                 completed: task.completed
                             }}
-                            onToggle={() => toggleTask(task.id, !task.completed)}
+                            onToggle={() => handleToggle(task.id, !task.completed)}
                             onDelete={() => deleteTask(task.id)}
                         />
                     ))

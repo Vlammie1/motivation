@@ -11,12 +11,38 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
     const startDate = startOfYear(endDate);
     const days = eachDayOfInterval({ start: startDate, end: endOfYear(endDate) });
 
+    // Get theme-aware colors
     const getIntensity = (hours: number) => {
+        const theme = document.documentElement.getAttribute('data-theme') || 'light';
+
         if (hours === 0) return 'var(--color-bg)';
-        if (hours < 2) return '#dcfce7'; // Very light green
-        if (hours < 5) return '#86efac'; // Light green
-        if (hours < 8) return '#22c55e'; // Green
-        return '#15803d'; // Dark green
+
+        // Different color schemes for different themes
+        if (theme === 'dark') {
+            // Neon colors for dark theme
+            if (hours < 2) return 'rgba(34, 197, 94, 0.2)';   // Very faint green
+            if (hours < 5) return 'rgba(34, 197, 94, 0.5)';   // Medium green
+            if (hours < 8) return 'rgba(34, 197, 94, 0.8)';   // Bright green
+            return 'rgba(34, 197, 94, 1)';                     // Full green
+        } else if (theme === 'cyberpunk') {
+            // Cyan/magenta for cyberpunk
+            if (hours < 2) return 'rgba(6, 182, 212, 0.3)';   // Faint cyan
+            if (hours < 5) return 'rgba(6, 182, 212, 0.6)';   // Medium cyan
+            if (hours < 8) return 'rgba(236, 72, 153, 0.7)';  // Pink
+            return 'rgba(236, 72, 153, 1)';                    // Full magenta
+        } else if (theme === 'retro') {
+            // Orange/yellow for retro
+            if (hours < 2) return 'rgba(251, 191, 36, 0.3)';  // Faint amber
+            if (hours < 5) return 'rgba(251, 191, 36, 0.6)';  // Medium amber
+            if (hours < 8) return 'rgba(249, 115, 22, 0.8)';  // Orange
+            return 'rgba(249, 115, 22, 1)';                    // Full orange
+        } else {
+            // Default light theme - use primary color
+            if (hours < 2) return 'rgba(59, 130, 246, 0.2)';  // Very light blue
+            if (hours < 5) return 'rgba(59, 130, 246, 0.5)';  // Light blue
+            if (hours < 8) return 'rgba(59, 130, 246, 0.8)';  // Blue
+            return 'rgba(59, 130, 246, 1)';                    // Full blue
+        }
     };
 
     const months = [
