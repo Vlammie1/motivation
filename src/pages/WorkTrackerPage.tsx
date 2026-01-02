@@ -77,7 +77,7 @@ const WorkTrackerPage = () => {
                     boxShadow: 'var(--brutalist-shadow)'
                 }}>
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
-                    <WorkHeatmap workHours={workLogs} onSelectDate={setSelectedDate} />
+                    <WorkHeatmap workHours={workLogs} onSelectDate={setSelectedDate} selectedDate={selectedDate} />
                 </section>
 
                 {/* Log Form Section */}

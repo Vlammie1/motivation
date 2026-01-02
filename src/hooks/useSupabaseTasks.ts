@@ -89,6 +89,11 @@ export const useSupabaseTasks = () => {
     const toggleTask = async (id: string, completed: boolean) => {
         console.log('Toggling task:', id, completed);
 
+        // Optimistic update: Update UI immediately
+        setTasks(prev => prev.map(t =>
+            t.id === id ? { ...t, completed } : t
+        ));
+
         try {
             const { error } = await supabase
                 .from('tasks')
@@ -97,16 +102,28 @@ export const useSupabaseTasks = () => {
 
             if (error) {
                 console.error('Error toggling task:', error);
+                // Revert optimistic update on error
+                setTasks(prev => prev.map(t =>
+                    t.id === id ? { ...t, completed: !completed } : t
+                ));
+                alert('Failed to update task: ' + error.message);
             } else {
-                setTasks(prev => prev.map(t => t.id === id ? { ...t, completed } : t));
+                console.log('Task toggled successfully');
             }
         } catch (err) {
             console.error('Unexpected error toggling task:', err);
+            // Revert optimistic update on error
+            setTasks(prev => prev.map(t =>
+                t.id === id ? { ...t, completed: !completed } : t
+            ));
         }
     };
 
     const deleteTask = async (id: string) => {
-        console.log('Deleting task:', id);
+        if (!confirm('Are you sure you want to delete this task?')) return;
+
+        // Optimistic update
+        setTasks(prev => prev.filter(t => t.id !== id));
 
         try {
             const { error } = await supabase
@@ -116,13 +133,21 @@ export const useSupabaseTasks = () => {
 
             if (error) {
                 console.error('Error deleting task:', error);
-            } else {
-                setTasks(prev => prev.filter(t => t.id !== id));
+                alert('Failed to delete task: ' + error.message);
+                // Trigger re-fetch to restore state if needed, or implement revert logic
+                fetchTasks();
             }
         } catch (err) {
             console.error('Unexpected error deleting task:', err);
+            fetchTasks();
         }
     };
 
-    return { tasks, loading, addTask, toggleTask, deleteTask, refresh: fetchTasks };
+    return {
+        tasks,
+        loading,
+        addTask,
+        toggleTask,
+        deleteTask
+    };
 };

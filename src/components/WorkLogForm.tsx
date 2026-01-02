@@ -30,9 +30,11 @@ export const WorkLogForm = ({ date, currentHours, onUpdate }: WorkLogFormProps) 
                 <div style={{
                     padding: 'var(--spacing-sm)',
                     border: 'var(--brutalist-border)',
-                    background: '#eee',
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
                     fontFamily: 'var(--font-heading)',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    opacity: 0.8
                 }}>
                     {date}
                 </div>
@@ -81,6 +83,6 @@ export const WorkLogForm = ({ date, currentHours, onUpdate }: WorkLogFormProps) 
             >
                 Save Grind
             </button>
-        </form>
+        </form >
     );
 };

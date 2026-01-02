@@ -4,9 +4,10 @@ import type { WorkHours } from '../types/work';
 interface WorkHeatmapProps {
     workHours: WorkHours;
     onSelectDate: (date: string) => void;
+    selectedDate?: string;
 }
 
-export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
+export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatmapProps) => {
     const endDate = new Date();
     const startDate = startOfYear(endDate);
     const days = eachDayOfInterval({ start: startDate, end: endOfYear(endDate) });
@@ -47,6 +48,9 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
             if (hours < 8) return 'rgba(37, 99, 235, 1)';
             return 'rgba(29, 78, 216, 1)';
         }
+
+        // Fallback
+        return 'var(--color-primary)';
     };
 
     const months = [
@@ -78,6 +82,8 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
                     {days.map((day) => {
                         const dateStr = format(day, 'yyyy-MM-dd');
                         const hours = workHours[dateStr] || 0;
+                        const isSelected = selectedDate === dateStr;
+
                         return (
                             <div
                                 key={dateStr}
@@ -87,9 +93,14 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
                                     width: '12px',
                                     height: '12px',
                                     backgroundColor: getIntensity(hours),
-                                    border: isToday(day) ? '2px solid var(--color-primary)' : '1px solid var(--color-text)',
+                                    border: isSelected
+                                        ? '2px solid white'
+                                        : (isToday(day) ? '2px solid var(--color-primary)' : '1px solid var(--color-text)'),
+                                    outline: isSelected ? '2px solid var(--color-primary)' : 'none',
+                                    outlineOffset: '1px',
                                     cursor: 'pointer',
                                     transition: 'transform 0.1s',
+                                    opacity: hours === 0 ? 0.5 : 1 // Make 0 hours slighty transparent/faded
                                 }}
                             />
                         );

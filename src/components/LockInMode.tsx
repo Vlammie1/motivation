@@ -72,11 +72,11 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
             initSession();
 
             const hypeInterval = setInterval(() => {
-                setHypeIndex(prev => (prev + 1) % HYPE_WORDS.length);
+                setHypeIndex(Math.floor(Math.random() * HYPE_WORDS.length));
             }, 3500);
 
             const empowerInterval = setInterval(() => {
-                setEmpowerIndex(prev => (prev + 1) % EMPOWERMENT_WORDS.length);
+                setEmpowerIndex(Math.floor(Math.random() * EMPOWERMENT_WORDS.length));
             }, 7000);
 
             const idleInterval = setInterval(() => {
