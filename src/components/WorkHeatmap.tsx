@@ -39,14 +39,14 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 4) return 'rgba(251, 191, 36, 0.6)';
             if (hours < 6) return 'rgba(249, 115, 22, 0.8)';
             if (hours < 8) return 'rgba(239, 68, 68, 1)';
-            return 'rgba(44, 36, 36, 1)';
+            return 'rgba(153, 27, 27, 1)'; // Deep Red
         } else if (theme === 'pure' || theme === 'light') {
             // PURE theme (light) - Blue gradient
             if (hours < 2) return 'rgba(59, 130, 246, 0.2)';
             if (hours < 4) return 'rgba(59, 130, 246, 0.5)';
             if (hours < 6) return 'rgba(59, 130, 246, 0.8)';
             if (hours < 8) return 'rgba(37, 99, 235, 1)';
-            return 'rgba(29, 78, 216, 1)';
+            return 'rgba(29, 78, 216, 1)'; // Dark Blue
         }
 
         // Fallback
@@ -100,7 +100,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
                                     outlineOffset: '1px',
                                     cursor: 'pointer',
                                     transition: 'transform 0.1s',
-                                    opacity: hours === 0 ? 0.5 : 1 // Make 0 hours slighty transparent/faded
+                                    opacity: hours === 0 ? 0.5 : 1
                                 }}
                             />
                         );

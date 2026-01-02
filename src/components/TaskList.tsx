@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TaskItem } from './TaskItem';
 import { useSupabaseTasks } from '../hooks/useSupabaseTasks';
+import { useTheme } from '../context/ThemeContext';
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TaskListProps {
@@ -9,6 +10,7 @@ interface TaskListProps {
 
 export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
     const { tasks, loading, addTask, toggleTask, deleteTask } = useSupabaseTasks();
+    const { theme } = useTheme();
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskWhy, setNewTaskWhy] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
@@ -41,6 +43,19 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
         );
     }
 
+    // Dynamic Styles based on Theme
+    const isVoid = theme === 'dark'; // Void theme
+    const isCyber = theme === 'cyber'; // Cyber theme
+    const isDarkish = isVoid || isCyber;
+
+    const containerBg = isDarkish ? '#000000' : 'var(--color-secondary)';
+
+    // Void theme specifics requested by user
+    const voidShadow = '4px 4px 0px #000000';
+    const voidBorder = '2px solid var(--color-primary)';
+    const inputBorder = isVoid ? voidBorder : '3px solid black';
+    const inputShadow = isVoid ? voidShadow : 'none';
+
     return (
         <div style={{ width: '100%' }}>
             <h2 style={{
@@ -57,12 +72,20 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
                 flexDirection: 'column',
                 gap: 'var(--spacing-sm)',
                 marginBottom: 'var(--spacing-lg)',
-                border: 'var(--brutalist-border)',
+                border: isVoid ? voidBorder : 'var(--brutalist-border)',
                 padding: 'var(--spacing-md)',
-                background: 'var(--color-secondary)',
+                background: containerBg,
+                boxShadow: isVoid ? voidShadow : undefined
             }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Task</label>
+                    <label style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        color: isDarkish ? 'var(--color-text)' : 'black'
+                    }}>
+                        Task
+                    </label>
                     <input
                         type="text"
                         value={newTaskText}
@@ -70,7 +93,8 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
                         placeholder="WHAT MUST BE DONE?"
                         style={{
                             padding: 'var(--spacing-sm)',
-                            border: '3px solid black', // Strong border
+                            border: inputBorder,
+                            boxShadow: inputShadow,
                             fontSize: '1.2rem',
                             fontFamily: 'var(--font-body)',
                             fontWeight: 'bold',
@@ -80,7 +104,14 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
                     />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Motivation</label>
+                    <label style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        color: isDarkish ? 'var(--color-text)' : 'black'
+                    }}>
+                        Motivation
+                    </label>
                     <input
                         type="text"
                         value={newTaskWhy}
@@ -88,7 +119,8 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
                         placeholder="WHY? (THE MOTIVATION)"
                         style={{
                             padding: 'var(--spacing-sm)',
-                            border: '2px solid black',
+                            border: isVoid ? voidBorder : '2px solid black',
+                            boxShadow: inputShadow,
                             fontSize: '1rem',
                             fontFamily: 'var(--font-body)',
                             background: 'white',
@@ -99,16 +131,17 @@ export const TaskList: React.FC<TaskListProps> = ({ onTaskToggle }) => {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-sm)' }}>
                     <button type="submit" style={{
-                        background: 'var(--color-text)',
-                        color: 'var(--color-bg)',
-                        padding: 'var(--spacing-xs) var(--spacing-lg)',
-                        fontSize: '1rem',
+                        background: isVoid ? '#000000' : 'var(--color-text)',
+                        color: isVoid ? '#ffffff' : 'var(--color-bg)',
+                        padding: '12px 24px', // Bigger padding
+                        fontSize: '1.1rem', // Slightly larger font
                         fontWeight: 'bold',
                         fontFamily: 'var(--font-heading)',
                         textTransform: 'uppercase',
                         cursor: 'pointer',
-                        border: '2px solid var(--color-bg)',
-                        maxWidth: '200px'
+                        border: isVoid ? '2px solid #ffffff' : '2px solid var(--color-bg)', // White border for void button
+                        boxShadow: isVoid ? voidShadow : 'none',
+                        minWidth: '150px' // Bigger button
                     }}>
                         ADD TO LIST
                     </button>

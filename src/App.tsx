@@ -46,12 +46,9 @@ function MainTool() {
     // If completed count INCREASED (user finished a task)
     if (completedCount > prevCompletedCountRef.current) {
       setShowVictory(true);
-
-      // Auto-hide after 2 seconds
-      const timer = setTimeout(() => setShowVictory(false), 2000);
-
+      // Timeout removed: overlay stays until user closes it
       prevCompletedCountRef.current = completedCount;
-      return () => clearTimeout(timer);
+      return;
     }
 
     // Check if task was un-completed (count decreased)
