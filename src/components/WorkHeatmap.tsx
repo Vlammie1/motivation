@@ -21,32 +21,32 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
         // Different color schemes for different themes
         if (theme === 'void' || theme === 'dark') {
             // VOID theme - Neon green on dark
-            if (hours < 2) return 'rgba(34, 197, 94, 0.25)';
-            if (hours < 4) return 'rgba(34, 197, 94, 0.5)';
-            if (hours < 6) return 'rgba(34, 197, 94, 0.75)';
-            if (hours < 8) return 'rgba(34, 197, 94, 1)';
-            return 'rgba(16, 185, 129, 1)';
+            if (hours < 2) return 'rgba(172, 254, 202, 1)';
+            if (hours < 4) return 'rgba(112, 255, 164, 1)';
+            if (hours < 6) return 'rgba(57, 237, 123, 0.75)';
+            if (hours < 8) return 'rgba(5, 133, 52, 1)';
+            return 'rgba(1, 77, 52, 1)';
         } else if (theme === 'cyber' || theme === 'system') {
             // SYSTEM theme - Cyan/magenta
-            if (hours < 2) return 'rgba(6, 182, 212, 0.3)';
-            if (hours < 4) return 'rgba(6, 182, 212, 0.6)';
-            if (hours < 6) return 'rgba(139, 92, 246, 0.8)';
-            if (hours < 8) return 'rgba(236, 72, 153, 1)';
-            return 'rgba(219, 39, 119, 1)';
+            if (hours < 2) return 'rgba(255, 188, 238, 1)';
+            if (hours < 4) return 'rgba(245, 102, 207, 1)';
+            if (hours < 6) return 'rgba(255, 3, 179, 1)';
+            if (hours < 8) return 'rgba(204, 13, 109, 0.94)';
+            return 'rgba(154, 2, 70, 0.78)';
         } else if (theme === 'hazard' || theme === 'warning') {
             // WARNING theme - Orange/red
-            if (hours < 2) return 'rgba(251, 191, 36, 0.3)';
-            if (hours < 4) return 'rgba(251, 191, 36, 0.6)';
-            if (hours < 6) return 'rgba(249, 115, 22, 0.8)';
-            if (hours < 8) return 'rgba(239, 68, 68, 1)';
-            return 'rgba(153, 27, 27, 1)'; // Deep Red
+            if (hours < 2) return 'rgba(255, 134, 134, 0.93)';
+            if (hours < 4) return 'rgba(252, 81, 81, 1)';
+            if (hours < 6) return 'rgba(255, 52, 52, 1)';
+            if (hours < 8) return 'rgba(219, 5, 5, 1)';
+            return 'rgba(134, 7, 7, 1)'; // Deep Red
         } else if (theme === 'pure' || theme === 'light') {
             // PURE theme (light) - Blue gradient
             if (hours < 2) return 'rgba(59, 130, 246, 0.2)';
             if (hours < 4) return 'rgba(59, 130, 246, 0.5)';
             if (hours < 6) return 'rgba(59, 130, 246, 0.8)';
             if (hours < 8) return 'rgba(37, 99, 235, 1)';
-            return 'rgba(29, 78, 216, 1)'; // Dark Blue
+            return 'rgba(0, 29, 107, 1)'; // Dark Blue
         }
 
         // Fallback
