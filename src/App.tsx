@@ -8,7 +8,7 @@ import { LockInMode } from './components/LockInMode';
 import { VictoryOverlay } from './components/VictoryOverlay';
 import { ShameClock } from './components/ShameClock';
 import useLocalStorage from './hooks/useLocalStorage';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 
 interface Task {
   id: string;
