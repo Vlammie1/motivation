@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { MotivationHeader } from './components/MotivationHeader';
 import { TaskList } from './components/TaskList';
@@ -24,19 +24,25 @@ function MainTool() {
   const [lastCompletionTime, setLastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
   const [isLockInActive, setIsLockInActive] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
+  const prevCompletedCountRef = useRef<number>(0);
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
   const isComplete = totalCount > 0 && completedCount === totalCount;
 
+  // Only show victory when tasks are ACTUALLY completed, not on reload
   useEffect(() => {
-    if (isComplete) {
+    // If we just completed all tasks (count increased and now complete)
+    if (isComplete && completedCount > prevCompletedCountRef.current) {
       const timer = setTimeout(() => setShowVictory(true), 1000);
       return () => clearTimeout(timer);
-    } else {
+    } else if (!isComplete) {
       setShowVictory(false);
     }
-  }, [isComplete]);
+
+    // Update the ref for next time
+    prevCompletedCountRef.current = completedCount;
+  }, [isComplete, completedCount]);
 
   const handleTaskToggle = async (id: string, completed: boolean) => {
     await toggleTask(id, completed);
@@ -144,7 +150,7 @@ function App() {
       <Analytics />
 
       <div style={{ marginTop: 'var(--spacing-xl)', textAlign: 'center', opacity: 0.5, fontSize: '0.8rem', fontFamily: 'var(--font-heading)' }}>
-        BRUTALIST MOTIVATION TOOL v3.0 // SUPABASE EDITION
+        BRUTALIST MOTIVATION TOOL v3.0
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ const MESSAGES = [
     { threshold: 604800, text: "ONE WEEK. ARE YOU THERE?" },
     { threshold: 1209600, text: "TWO WEEKS. LAZY FUCKER." },
     { threshold: 2419200, text: "THREE WEEKS. OUTWORK THEM YOU SLOW FUCK." },
-    { threshold: 4838400, text: "ONE MONTH. YOU'RE NEVER WINNING AT THIS PACE." },
+    { threshold: 4838400, text: "ONE MONTH! YOU'RE NEVER WINNING AT THIS PACE." },
 ];
 
 export const ShameClock: React.FC<ShameClockProps> = ({ lastCompletionTime }) => {

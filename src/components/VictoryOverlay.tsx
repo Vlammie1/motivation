@@ -32,7 +32,7 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({ isVisible, onClo
                 lineHeight: 0.8,
                 marginBottom: 'var(--spacing-md)'
             }}>
-                LEVEL<br />CLEARED
+                TASK<br />CLEARED
             </div>
 
             <div style={{
@@ -57,7 +57,7 @@ export const VictoryOverlay: React.FC<VictoryOverlayProps> = ({ isVisible, onClo
                     cursor: 'pointer'
                 }}
             >
-                I'M NOT DONE YET
+                AND I'M NOT DONE YET
             </button>
 
             <style>{`

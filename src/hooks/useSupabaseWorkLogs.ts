@@ -64,31 +64,16 @@ export const useSupabaseWorkLogs = () => {
         console.log('Upserting work log:', date, hours);
 
         try {
-            // Check if entry exists for this date
-            const { data: existing } = await supabase
+            // Use Supabase's native upsert to avoid race conditions
+            const { error } = await supabase
                 .from('work_logs')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('work_date', date)
-                .maybeSingle();
-
-            let error;
-            if (existing) {
-                const { error: updateError } = await supabase
-                    .from('work_logs')
-                    .update({ hours })
-                    .eq('id', existing.id);
-                error = updateError;
-            } else {
-                const { error: insertError } = await supabase
-                    .from('work_logs')
-                    .insert({
-                        user_id: user.id,
-                        work_date: date,
-                        hours
-                    });
-                error = insertError;
-            }
+                .upsert({
+                    user_id: user.id,
+                    work_date: date,
+                    hours
+                }, {
+                    onConflict: 'user_id,work_date'
+                });
 
             if (error) {
                 console.error('Error upserting work log:', error);

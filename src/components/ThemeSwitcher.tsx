@@ -4,8 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 const THEMES = [
     { id: 'light', name: 'PURE' },
     { id: 'dark', name: 'VOID' },
-    { id: 'hazard', name: 'WARNING' },
-    { id: 'cyber', name: 'SYSTEM' },
+    { id: 'hazard', name: 'HAZARD' },
+    { id: 'cyber', name: 'CYBER' },
 ] as const;
 
 export const ThemeSwitcher: React.FC = () => {

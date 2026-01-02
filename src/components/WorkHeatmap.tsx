@@ -15,33 +15,37 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
     const getIntensity = (hours: number) => {
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
-        if (hours === 0) return 'var(--color-bg)';
+        if (hours === 0) return 'transparent';
 
         // Different color schemes for different themes
-        if (theme === 'dark') {
-            // Neon colors for dark theme
-            if (hours < 2) return 'rgba(34, 197, 94, 0.2)';   // Very faint green
-            if (hours < 5) return 'rgba(34, 197, 94, 0.5)';   // Medium green
-            if (hours < 8) return 'rgba(34, 197, 94, 0.8)';   // Bright green
-            return 'rgba(34, 197, 94, 1)';                     // Full green
-        } else if (theme === 'cyberpunk') {
-            // Cyan/magenta for cyberpunk
-            if (hours < 2) return 'rgba(6, 182, 212, 0.3)';   // Faint cyan
-            if (hours < 5) return 'rgba(6, 182, 212, 0.6)';   // Medium cyan
-            if (hours < 8) return 'rgba(236, 72, 153, 0.7)';  // Pink
-            return 'rgba(236, 72, 153, 1)';                    // Full magenta
-        } else if (theme === 'retro') {
-            // Orange/yellow for retro
-            if (hours < 2) return 'rgba(251, 191, 36, 0.3)';  // Faint amber
-            if (hours < 5) return 'rgba(251, 191, 36, 0.6)';  // Medium amber
-            if (hours < 8) return 'rgba(249, 115, 22, 0.8)';  // Orange
-            return 'rgba(249, 115, 22, 1)';                    // Full orange
-        } else {
-            // Default light theme - use primary color
-            if (hours < 2) return 'rgba(59, 130, 246, 0.2)';  // Very light blue
-            if (hours < 5) return 'rgba(59, 130, 246, 0.5)';  // Light blue
-            if (hours < 8) return 'rgba(59, 130, 246, 0.8)';  // Blue
-            return 'rgba(59, 130, 246, 1)';                    // Full blue
+        if (theme === 'void' || theme === 'dark') {
+            // VOID theme - Neon green on dark
+            if (hours < 2) return 'rgba(34, 197, 94, 0.25)';
+            if (hours < 4) return 'rgba(34, 197, 94, 0.5)';
+            if (hours < 6) return 'rgba(34, 197, 94, 0.75)';
+            if (hours < 8) return 'rgba(34, 197, 94, 1)';
+            return 'rgba(16, 185, 129, 1)';
+        } else if (theme === 'cyber' || theme === 'system') {
+            // SYSTEM theme - Cyan/magenta
+            if (hours < 2) return 'rgba(6, 182, 212, 0.3)';
+            if (hours < 4) return 'rgba(6, 182, 212, 0.6)';
+            if (hours < 6) return 'rgba(139, 92, 246, 0.8)';
+            if (hours < 8) return 'rgba(236, 72, 153, 1)';
+            return 'rgba(219, 39, 119, 1)';
+        } else if (theme === 'hazard' || theme === 'warning') {
+            // WARNING theme - Orange/red
+            if (hours < 2) return 'rgba(251, 191, 36, 0.3)';
+            if (hours < 4) return 'rgba(251, 191, 36, 0.6)';
+            if (hours < 6) return 'rgba(249, 115, 22, 0.8)';
+            if (hours < 8) return 'rgba(239, 68, 68, 1)';
+            return 'rgba(44, 36, 36, 1)';
+        } else if (theme === 'pure' || theme === 'light') {
+            // PURE theme (light) - Blue gradient
+            if (hours < 2) return 'rgba(59, 130, 246, 0.2)';
+            if (hours < 4) return 'rgba(59, 130, 246, 0.5)';
+            if (hours < 6) return 'rgba(59, 130, 246, 0.8)';
+            if (hours < 8) return 'rgba(37, 99, 235, 1)';
+            return 'rgba(29, 78, 216, 1)';
         }
     };
 
@@ -83,7 +87,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
                                     width: '12px',
                                     height: '12px',
                                     backgroundColor: getIntensity(hours),
-                                    border: isToday(day) ? '2px solid var(--color-primary)' : '1px solid rgba(0,0,0,0.1)',
+                                    border: isToday(day) ? '2px solid var(--color-primary)' : '1px solid var(--color-text)',
                                     cursor: 'pointer',
                                     transition: 'transform 0.1s',
                                 }}
@@ -96,7 +100,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate }: WorkHeatmapProps) => {
             <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', fontSize: '0.8rem' }}>
                 <span>Less</span>
                 {[0, 1, 4, 7, 10].map(h => (
-                    <div key={h} style={{ width: '12px', height: '12px', backgroundColor: getIntensity(h), border: '1px solid rgba(0,0,0,0.1)' }} />
+                    <div key={h} style={{ width: '12px', height: '12px', backgroundColor: getIntensity(h), border: '1px solid var(--color-text)' }} />
                 ))}
                 <span>More</span>
             </div>
