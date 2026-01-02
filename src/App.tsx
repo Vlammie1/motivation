@@ -8,6 +8,7 @@ import { LockInMode } from './components/LockInMode';
 import { VictoryOverlay } from './components/VictoryOverlay';
 import { ShameClock } from './components/ShameClock';
 import useLocalStorage from './hooks/useLocalStorage';
+import { Analytics } from "@vercel/analytics/next"
 
 interface Task {
   id: string;
@@ -111,6 +112,8 @@ function App() {
         isVisible={showVictory}
         onClose={() => setShowVictory(false)}
       />
+
+      <Analytics />
 
       <div style={{ marginTop: 'var(--spacing-xl)', textAlign: 'center', opacity: 0.5, fontSize: '0.8rem', fontFamily: 'var(--font-heading)' }}>
         BRUTALIST MOTIVATION TOOL v2.6 // AGGRESSIVE EDITION
