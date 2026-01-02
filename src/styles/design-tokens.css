@@ -1,0 +1,132 @@
+:root {
+  /* Default (Light/Premium) */
+  --color-bg: #fdfdfd;
+  --color-text: #1a1a1a;
+  --color-primary: #ff3c00;
+  --color-secondary: #ffc400;
+  --color-accent: #2962ff;
+  --color-border: #1a1a1a;
+  --color-muted: #efefef;
+
+  /* Typography */
+  --font-heading: 'Impact', 'Anton', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Spacing */
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 4rem;
+
+  /* Borders & Shadows */
+  --border-width: 4px;
+  --shadow-offset: 8px;
+  --brutalist-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--color-border);
+  --brutalist-border: var(--border-width) solid var(--color-border);
+
+  /* Animation */
+  --transition-fast: 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-theme='dark'] {
+  --color-bg: #0a0e14;
+  --color-text: #f0f4f8;
+  --color-primary: #ff5252;
+  --color-secondary: #ffd600;
+  --color-accent: #bb86fc;
+  --color-border: #f0f4f8;
+  --color-muted: #1e2227;
+}
+
+[data-theme='hazard'] {
+  --color-bg: #ffa000;
+  --color-text: #000000;
+  --color-primary: #000000;
+  --color-secondary: #ffffff;
+  --color-accent: #d32f2f;
+  --color-border: #000000;
+  --color-muted: #e68e00;
+}
+
+[data-theme='cyber'] {
+  --color-bg: #0d0221;
+  --color-text: #00ffa3;
+  --color-primary: #da00ff;
+  --color-secondary: #7000ff;
+  --color-accent: #00ffa3;
+  --color-border: #00ffa3;
+  --color-muted: #1a0b2e;
+  --brutalist-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--color-primary);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  transition: background-color 0.4s ease, color 0.4s ease;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+input,
+button {
+  font-family: inherit;
+  border: var(--brutalist-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: var(--brutalist-shadow);
+  transition: var(--transition-fast);
+}
+
+input:focus,
+button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 4px 4px 0px var(--color-border);
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes heart-beat {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  5% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  10% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  15% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
