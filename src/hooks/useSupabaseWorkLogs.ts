@@ -36,6 +36,11 @@ export const useSupabaseWorkLogs = () => {
     };
 
     useEffect(() => {
+        if (!user) {
+            setLoading(false);
+            setWorkLogs({});
+            return;
+        }
         fetchWorkLogs();
     }, [user]);
 

@@ -33,6 +33,11 @@ export const useSupabaseTasks = () => {
     };
 
     useEffect(() => {
+        if (!user) {
+            setLoading(false);
+            setTasks([]);
+            return;
+        }
         fetchTasks();
     }, [user]);
 
