@@ -36,14 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const fetchProfile = async () => {
             try {
-                console.log('Fetching profile for user:', user.id);
+                // console.log('Fetching profile for user:', user.id);
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
                     .maybeSingle();
 
-                console.log('Profile fetch result:', { data, error });
+                // console.log('Profile fetch result:', { data, error });
 
                 if (error) {
                     console.error('Error fetching profile:', error);
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         setProfile(newProfile);
                     }
                 } else {
-                    console.log('Profile loaded successfully:', data);
+                    // console.log('Profile loaded successfully:', data);
                     setProfile(data);
                 }
             } catch (err) {
@@ -92,7 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const initAuth = async () => {
             try {
-                console.log('Initializing auth...');
                 const { data: { session }, error } = await supabase.auth.getSession();
 
                 if (error) {
@@ -102,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (mounted) {
                     setSession(session);
                     setUser(session?.user ?? null);
-                    setLoading(false); // ALWAYS set loading to false here
+                    setLoading(false);
                 }
             } catch (err) {
                 console.error('Error in initAuth:', err);
@@ -116,11 +115,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event);
+            // console.log('Auth state changed:', event);
 
             if (mounted) {
-                setSession(session);
-                setUser(session?.user ?? null);
+                // Prevent unnecessary updates if session hasn't meaningfully changed
+                setSession(currentSession => {
+                    if (currentSession?.access_token === session?.access_token) {
+                        return currentSession;
+                    }
+                    return session;
+                });
+
+                setUser(currentUser => {
+                    if (currentUser?.id === session?.user?.id) {
+                        return currentUser;
+                    }
+                    return session?.user ?? null;
+                });
             }
         });
 

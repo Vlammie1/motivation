@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSupabaseLockIn } from '../hooks/useSupabaseLockIn';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface LockInModeProps {
     isActive: boolean;
@@ -53,15 +56,29 @@ const EMPOWERMENT_WORDS = [
     "YOU ARE DESTINED FOR GREATNESS"
 ];
 
+const DEFAULT_BEAT_URL = "https://kfatexkqwhqbiavyvwxe.supabase.co/storage/v1/object/sign/Lock%20in%20beat/Lock%20in%20beat/inspiring-motivation-sport-456639.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84MzFhNjZkYi1lM2Y3LTQxMDgtYWIyMy1iOGQxZGI3ZTM3YTQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMb2NrIGluIGJlYXQvTG9jayBpbiBiZWF0L2luc3BpcmluZy1tb3RpdmF0aW9uLXNwb3J0LTQ1NjYzOS5tcDMiLCJpYXQiOjE3NjczODQ3ODEsImV4cCI6NDg4OTQ0ODc4MX0.igQ0VOSwHRNrQxFlgE4T-WqMcFI-J1GGWb6Dnhf4BN4";
+
 export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGoal }) => {
     const { startSession, endSession } = useSupabaseLockIn();
+    const { user } = useAuth();
     const [hypeIndex, setHypeIndex] = useState(0);
     const [empowerIndex, setEmpowerIndex] = useState(0);
     const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [idleTime, setIdleTime] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const lastActivityRef = useRef<number>(Date.now());
+
+    // Load saved beat from localStorage on mount
+    useEffect(() => {
+        const savedBeat = localStorage.getItem('lock_in_beat_url');
+        if (savedBeat) {
+            setUserAudioUrl(savedBeat);
+        } else {
+            setUserAudioUrl(DEFAULT_BEAT_URL);
+        }
+    }, []);
 
     useEffect(() => {
         if (isActive) {
@@ -115,12 +132,39 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
         onExit();
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (userAudioUrl) URL.revokeObjectURL(userAudioUrl);
-            const url = URL.createObjectURL(file);
-            setUserAudioUrl(url);
+        if (!file || !user) return;
+
+        setUploading(true);
+        try {
+            // Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { data, error } = await supabase.storage
+                .from('Lock in beat')
+                .upload(filePath, file);
+
+            if (error) {
+                throw error;
+            }
+
+            // Get public URL (assuming bucket is public)
+            const { data: { publicUrl } } = supabase.storage
+                .from('Lock in beat')
+                .getPublicUrl(filePath);
+
+            setUserAudioUrl(publicUrl);
+            localStorage.setItem('lock_in_beat_url', publicUrl); // Persist
+            alert('Beat uploaded & saved successfully!');
+
+        } catch (error: any) {
+            console.error('Error uploading beat:', error);
+            alert('Failed to upload beat: ' + error.message);
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -155,7 +199,7 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                 zIndex: 1
             }} />
 
-            <audio ref={audioRef} loop src={userAudioUrl || ""} />
+            <audio ref={audioRef} loop src={userAudioUrl || DEFAULT_BEAT_URL} />
 
             <div style={{ zIndex: 2 }}>
                 <div style={{
@@ -217,19 +261,48 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                     color: 'var(--color-bg)',
                     fontWeight: 'bold',
                     border: 'var(--brutalist-border)',
-                    cursor: 'pointer',
+                    cursor: uploading ? 'wait' : 'pointer',
                     textTransform: 'uppercase',
                     fontSize: '0.7rem',
-                    boxShadow: '4px 4px 0px var(--color-primary)'
+                    boxShadow: '4px 4px 0px var(--color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                 }}>
-                    {userAudioUrl ? 'TRACK LOADED' : 'UPLOAD LOCK-IN BEAT (.MP3)'}
+                    {uploading ? (
+                        <>
+                            <Loader2 className="animate-spin" size={14} />
+                            UPLOADING...
+                        </>
+                    ) : (
+                        userAudioUrl && userAudioUrl !== DEFAULT_BEAT_URL ? 'CUSTOM BEAT ACTIVE (CHANGE?)' : 'UPLOAD LOCK-IN BEAT (.MP3)'
+                    )}
                     <input
                         type="file"
                         accept="audio/mp3"
                         style={{ display: 'none' }}
                         onChange={handleFileUpload}
+                        disabled={uploading}
                     />
                 </label>
+                {userAudioUrl !== DEFAULT_BEAT_URL && (
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('lock_in_beat_url');
+                            setUserAudioUrl(DEFAULT_BEAT_URL);
+                        }}
+                        style={{
+                            fontSize: '0.6rem',
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--color-text)',
+                            textDecoration: 'underline',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        RESET TO DEFAULT BEAT
+                    </button>
+                )}
             </div>
 
             <button
