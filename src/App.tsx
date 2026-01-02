@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { MotivationHeader } from './components/MotivationHeader';
 import { TaskList } from './components/TaskList';
 import { HypeButton } from './components/HypeButton';
@@ -7,8 +8,10 @@ import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { LockInMode } from './components/LockInMode';
 import { VictoryOverlay } from './components/VictoryOverlay';
 import { ShameClock } from './components/ShameClock';
+import { Navigation } from './components/Navigation';
 import useLocalStorage from './hooks/useLocalStorage';
 import { Analytics } from "@vercel/analytics/react"
+import WorkTrackerPage from './pages/WorkTrackerPage';
 
 interface Task {
   id: string;
@@ -17,7 +20,7 @@ interface Task {
   completed: boolean;
 }
 
-function App() {
+function MainTool() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('brutalist-tasks', []);
   const [mainGoal] = useLocalStorage<string>('brutalist-main-goal', '');
   const [lastCompletionTime, setLastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
@@ -42,7 +45,7 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
         <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
           <ThemeSwitcher />
@@ -68,9 +71,7 @@ function App() {
       </div>
 
       <MotivationHeader />
-
       <HypeButton />
-
       <ProgressBar current={completedCount} total={totalCount} />
 
       <div style={{
@@ -112,11 +113,24 @@ function App() {
         isVisible={showVictory}
         onClose={() => setShowVictory(false)}
       />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <div className="App">
+      <Navigation />
+
+      <Routes>
+        <Route path="/" element={<MainTool />} />
+        <Route path="/work" element={<WorkTrackerPage />} />
+      </Routes>
 
       <Analytics />
 
       <div style={{ marginTop: 'var(--spacing-xl)', textAlign: 'center', opacity: 0.5, fontSize: '0.8rem', fontFamily: 'var(--font-heading)' }}>
-        BRUTALIST MOTIVATION TOOL v2.6 // AGGRESSIVE EDITION
+        BRUTALIST MOTIVATION TOOL v2.7 // AGGRESSIVE EDITION
       </div>
     </div>
   );
