@@ -1,22 +1,40 @@
 import { useState } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
 import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
-import { TrendingUp } from 'lucide-react';
-
-export interface WorkHours { [date: string]: number }
+import { TrendingUp, Loader2, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
 
 const WorkTrackerPage = () => {
-    const [workHours, setWorkHours] = useLocalStorage<WorkHours>('brutalist-work-hours', {});
+    const { user, loading: authLoading } = useAuth();
+    const { workLogs, loading: logsLoading, upsertWorkLog } = useSupabaseWorkLogs();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    const handleUpdateHours = (date: string, hours: number) => {
-        setWorkHours((prev) => ({
-            ...prev,
-            [date]: hours,
-        }));
-    };
+    if (authLoading || (user && logsLoading)) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-xl)' }}>
+                <Loader2 className="animate-spin" size={48} />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div style={{
+                border: 'var(--brutalist-border)',
+                padding: 'var(--spacing-xl)',
+                textAlign: 'center',
+                background: 'var(--color-bg)',
+                boxShadow: '8px 8px 0px var(--color-text)',
+                marginTop: 'var(--spacing-xl)'
+            }}>
+                <Lock size={48} style={{ marginBottom: 'var(--spacing-md)' }} />
+                <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)', fontSize: '2rem' }}>Access Denied</h2>
+                <p style={{ fontWeight: 'bold' }}>LOG IN TO TRACK YOUR JOURNEY.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="work-tracker-page">
@@ -48,7 +66,7 @@ const WorkTrackerPage = () => {
                         <TrendingUp size={24} color="var(--color-primary)" />
                         <h2 style={{ textTransform: 'uppercase', margin: 0 }}>Performance Stats</h2>
                     </div>
-                    <WorkStats workHours={workHours} />
+                    <WorkStats workHours={workLogs} />
                 </section>
 
                 {/* Heatmap Section */}
@@ -59,7 +77,7 @@ const WorkTrackerPage = () => {
                     boxShadow: 'var(--brutalist-shadow)'
                 }}>
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
-                    <WorkHeatmap workHours={workHours} onSelectDate={setSelectedDate} />
+                    <WorkHeatmap workHours={workLogs} onSelectDate={setSelectedDate} />
                 </section>
 
                 {/* Log Form Section */}
@@ -72,8 +90,8 @@ const WorkTrackerPage = () => {
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Log Your Hours</h2>
                     <WorkLogForm
                         date={selectedDate}
-                        currentHours={workHours[selectedDate] || 0}
-                        onUpdate={handleUpdateHours}
+                        currentHours={workLogs[selectedDate] || 0}
+                        onUpdate={upsertWorkLog}
                     />
                 </section>
             </div>

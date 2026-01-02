@@ -1,4 +1,4 @@
-import type { WorkHours } from '../pages/WorkTrackerPage';
+import type { WorkHours } from '../types/work';
 
 interface WorkStatsProps {
     workHours: WorkHours;

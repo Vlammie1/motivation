@@ -1,45 +1,29 @@
 import React, { useState } from 'react';
 import { TaskItem } from './TaskItem';
+import { useSupabaseTasks } from '../hooks/useSupabaseTasks';
+import { Loader2 } from 'lucide-react';
 
-interface Task {
-    id: string;
-    text: string;
-    why: string;
-    completed: boolean;
-}
-
-interface TaskListProps {
-    tasks: Task[];
-    setTasks: (tasks: Task[]) => void;
-}
-
-export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
+export const TaskList: React.FC = () => {
+    const { tasks, loading, addTask, toggleTask, deleteTask } = useSupabaseTasks();
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskWhy, setNewTaskWhy] = useState('');
 
-    const addTask = (e: React.FormEvent) => {
+    const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTaskText.trim()) return;
 
-        const newTask: Task = {
-            id: crypto.randomUUID(),
-            text: newTaskText,
-            why: newTaskWhy,
-            completed: false,
-        };
-
-        setTasks([...tasks, newTask]);
+        await addTask(newTaskText, newTaskWhy);
         setNewTaskText('');
         setNewTaskWhy('');
     };
 
-    const toggleTask = (id: string) => {
-        setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-    };
-
-    const deleteTask = (id: string) => {
-        setTasks(tasks.filter(t => t.id !== id));
-    };
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-lg)' }}>
+                <Loader2 className="animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div style={{ width: '100%' }}>
@@ -52,15 +36,14 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                 THE GRIND
             </h2>
 
-            <form onSubmit={addTask} style={{
+            <form onSubmit={handleAddTask} style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 'var(--spacing-sm)',
                 marginBottom: 'var(--spacing-lg)',
                 border: 'var(--brutalist-border)',
-                padding: 'var(--spacing-sm)', // Reduced padding
+                padding: 'var(--spacing-sm)',
                 background: 'var(--color-secondary)',
-                boxShadow: 'none' // Removed shadow to prevent overlap messiness
             }}>
                 <input
                     type="text"
@@ -73,7 +56,6 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                         fontSize: '1.2rem',
                         fontFamily: 'var(--font-body)',
                         fontWeight: 'bold',
-                        boxShadow: 'none',
                         background: 'white',
                         color: 'black'
                     }}
@@ -88,7 +70,6 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                         border: 'var(--brutalist-border)',
                         fontSize: '1rem',
                         fontFamily: 'var(--font-body)',
-                        boxShadow: 'none',
                         background: 'white',
                         color: 'black'
                     }}
@@ -103,7 +84,6 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                     textTransform: 'uppercase',
                     cursor: 'pointer',
                     border: 'var(--brutalist-border)',
-                    boxShadow: 'none'
                 }}>
                     ADD TO THE LIST
                 </button>
@@ -118,9 +98,14 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, setTasks }) => {
                     tasks.map(task => (
                         <TaskItem
                             key={task.id}
-                            task={task}
-                            onToggle={toggleTask}
-                            onDelete={deleteTask}
+                            task={{
+                                id: task.id,
+                                text: task.title,
+                                why: task.why,
+                                completed: task.completed
+                            }}
+                            onToggle={() => toggleTask(task.id, !task.completed)}
+                            onDelete={() => deleteTask(task.id)}
                         />
                     ))
                 )}

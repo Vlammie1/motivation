@@ -9,21 +9,19 @@ import { LockInMode } from './components/LockInMode';
 import { VictoryOverlay } from './components/VictoryOverlay';
 import { ShameClock } from './components/ShameClock';
 import { Navigation } from './components/Navigation';
-import useLocalStorage from './hooks/useLocalStorage';
 import { Analytics } from "@vercel/analytics/react"
 import WorkTrackerPage from './pages/WorkTrackerPage';
-
-interface Task {
-  id: string;
-  text: string;
-  why: string;
-  completed: boolean;
-}
+import { useAuth } from './context/AuthContext';
+import { useSupabaseTasks } from './hooks/useSupabaseTasks';
+import { useSupabaseProfile } from './hooks/useSupabaseProfile';
+import { Loader2, Lock } from 'lucide-react';
+import useLocalStorage from './hooks/useLocalStorage';
 
 function MainTool() {
-  const [tasks, setTasks] = useLocalStorage<Task[]>('brutalist-tasks', []);
-  const [mainGoal] = useLocalStorage<string>('brutalist-main-goal', '');
-  const [lastCompletionTime, setLastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
+  const { user, loading: authLoading } = useAuth();
+  const { tasks, loading: tasksLoading } = useSupabaseTasks();
+  const { profile } = useSupabaseProfile();
+  const [lastCompletionTime] = useLocalStorage<number | null>('brutalist-last-completion', null);
   const [isLockInActive, setIsLockInActive] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
 
@@ -44,6 +42,32 @@ function MainTool() {
     setIsLockInActive(true);
   };
 
+  if (authLoading || (user && tasksLoading)) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--spacing-xl)' }}>
+        <Loader2 className="animate-spin" size={48} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={{
+        border: 'var(--brutalist-border)',
+        padding: 'var(--spacing-xl)',
+        textAlign: 'center',
+        background: 'var(--color-bg)',
+        boxShadow: '8px 8px 0px var(--color-text)',
+        marginTop: 'var(--spacing-xl)'
+      }}>
+        <Lock size={48} style={{ marginBottom: 'var(--spacing-md)' }} />
+        <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)', fontSize: '2rem' }}>Access Denied</h2>
+        <p style={{ fontWeight: 'bold' }}>YOU MUST LOGIN TO ACCESS THE GRIND.</p>
+        <p style={{ fontSize: '0.8rem', marginTop: 'var(--spacing-sm)', opacity: 0.7 }}>PRO TIP: NO ACCOUNT = NO PROGRESS.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
@@ -62,8 +86,7 @@ function MainTool() {
             border: 'var(--brutalist-border)',
             cursor: 'crosshair',
             boxShadow: 'var(--brutalist-shadow)',
-            fontSize: '1.5rem',
-            transform: 'scale(1.1)'
+            fontSize: '1.2rem'
           }}
         >
           [ LOCK IN ]
@@ -82,23 +105,7 @@ function MainTool() {
         marginBottom: 'var(--spacing-lg)',
         marginTop: 'var(--spacing-md)'
       }}>
-        <TaskList
-          tasks={tasks}
-          setTasks={(newTasks: Task[] | ((prev: Task[]) => Task[])) => {
-            if (typeof newTasks === 'function') {
-              setTasks((prev: Task[]) => {
-                const resolved = newTasks(prev);
-                const newlyCompleted = resolved.some((t: Task, i: number) => t.completed && !prev[i]?.completed);
-                if (newlyCompleted) setLastCompletionTime(Date.now());
-                return resolved;
-              });
-            } else {
-              const newlyCompleted = newTasks.some((t: Task, i: number) => t.completed && !tasks[i]?.completed);
-              if (newlyCompleted) setLastCompletionTime(Date.now());
-              setTasks(newTasks);
-            }
-          }}
-        />
+        <TaskList />
       </div>
 
       <ShameClock lastCompletionTime={lastCompletionTime} />
@@ -106,7 +113,7 @@ function MainTool() {
       <LockInMode
         isActive={isLockInActive}
         onExit={() => setIsLockInActive(false)}
-        mainGoal={mainGoal}
+        mainGoal={profile?.lock_in_beat || ''}
       />
 
       <VictoryOverlay
@@ -130,7 +137,7 @@ function App() {
       <Analytics />
 
       <div style={{ marginTop: 'var(--spacing-xl)', textAlign: 'center', opacity: 0.5, fontSize: '0.8rem', fontFamily: 'var(--font-heading)' }}>
-        BRUTALIST MOTIVATION TOOL v2.7 // AGGRESSIVE EDITION
+        BRUTALIST MOTIVATION TOOL v3.0 // SUPABASE EDITION
       </div>
     </div>
   );

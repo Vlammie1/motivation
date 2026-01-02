@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSupabaseLockIn } from '../hooks/useSupabaseLockIn';
 
 interface LockInModeProps {
     isActive: boolean;
@@ -53,13 +54,23 @@ const EMPOWERMENT_WORDS = [
 ];
 
 export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGoal }) => {
+    const { startSession, endSession } = useSupabaseLockIn();
     const [hypeIndex, setHypeIndex] = useState(0);
     const [empowerIndex, setEmpowerIndex] = useState(0);
     const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [idleTime, setIdleTime] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const lastActivityRef = useRef<number>(Date.now());
 
     useEffect(() => {
         if (isActive) {
+            const initSession = async () => {
+                const session = await startSession();
+                if (session) setSessionId(session.id);
+            };
+            initSession();
+
             const hypeInterval = setInterval(() => {
                 setHypeIndex(prev => (prev + 1) % HYPE_WORDS.length);
             }, 3500);
@@ -68,7 +79,20 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                 setEmpowerIndex(prev => (prev + 1) % EMPOWERMENT_WORDS.length);
             }, 7000);
 
-            // Audio Logic (Only for user-uploaded beats now, and it plays automatically when active)
+            const idleInterval = setInterval(() => {
+                const now = Date.now();
+                if (now - lastActivityRef.current > 1000) {
+                    setIdleTime(prev => prev + 1);
+                }
+            }, 1000);
+
+            const activityHandler = () => {
+                lastActivityRef.current = Date.now();
+            };
+
+            window.addEventListener('mousemove', activityHandler);
+            window.addEventListener('keydown', activityHandler);
+
             if (audioRef.current) {
                 audioRef.current.load();
                 audioRef.current.play().catch(e => console.warn("Playback failed:", e));
@@ -77,9 +101,19 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
             return () => {
                 clearInterval(hypeInterval);
                 clearInterval(empowerInterval);
+                clearInterval(idleInterval);
+                window.removeEventListener('mousemove', activityHandler);
+                window.removeEventListener('keydown', activityHandler);
             };
         }
     }, [isActive, userAudioUrl]);
+
+    const handleExit = async () => {
+        if (sessionId) {
+            await endSession(sessionId, idleTime);
+        }
+        onExit();
+    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -121,12 +155,7 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                 zIndex: 1
             }} />
 
-            {/* User can still upload a beat for Lock In mode if they want, but default is silent now */}
-            <audio
-                ref={audioRef}
-                loop
-                src={userAudioUrl || ""}
-            />
+            <audio ref={audioRef} loop src={userAudioUrl || ""} />
 
             <div style={{ zIndex: 2 }}>
                 <div style={{
@@ -164,6 +193,12 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                 }}>
                     {EMPOWERMENT_WORDS[empowerIndex]}
                 </div>
+
+                {idleTime > 10 && (
+                    <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: 'var(--spacing-md)', textTransform: 'uppercase' }}>
+                        IDLE ALERT: {idleTime}s WASTED. GET BACK TO IT.
+                    </div>
+                )}
             </div>
 
             <div style={{
@@ -184,7 +219,8 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
                     border: 'var(--brutalist-border)',
                     cursor: 'pointer',
                     textTransform: 'uppercase',
-                    fontSize: '0.7rem'
+                    fontSize: '0.7rem',
+                    boxShadow: '4px 4px 0px var(--color-primary)'
                 }}>
                     {userAudioUrl ? 'TRACK LOADED' : 'UPLOAD LOCK-IN BEAT (.MP3)'}
                     <input
@@ -197,7 +233,7 @@ export const LockInMode: React.FC<LockInModeProps> = ({ isActive, onExit, mainGo
             </div>
 
             <button
-                onClick={onExit}
+                onClick={handleExit}
                 style={{
                     position: 'absolute',
                     bottom: 'var(--spacing-lg)',

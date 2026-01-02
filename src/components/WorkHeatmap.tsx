@@ -1,5 +1,5 @@
 import { format, startOfYear, endOfYear, eachDayOfInterval, isToday } from 'date-fns';
-import type { WorkHours } from '../pages/WorkTrackerPage';
+import type { WorkHours } from '../types/work';
 
 interface WorkHeatmapProps {
     workHours: WorkHours;
