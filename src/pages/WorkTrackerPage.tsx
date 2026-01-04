@@ -5,11 +5,17 @@ import { WorkLogForm } from '../components/WorkLogForm';
 import { TrendingUp, Loader2, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
+import { GrindEfficiency } from '../components/GrindEfficiency';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
     const { workLogs, loading: logsLoading, upsertWorkLog } = useSupabaseWorkLogs();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+    const currentYearPrefix = new Date().getFullYear().toString();
+    const yearHours = Object.entries(workLogs)
+        .filter(([date]) => date.startsWith(currentYearPrefix))
+        .reduce((acc, [_, hours]) => acc + hours, 0);
 
     if (authLoading || (user && logsLoading)) {
         return (
@@ -78,6 +84,7 @@ const WorkTrackerPage = () => {
                 }}>
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
                     <WorkHeatmap workHours={workLogs} onSelectDate={setSelectedDate} selectedDate={selectedDate} />
+                    <GrindEfficiency totalYearHours={yearHours} />
                 </section>
 
                 {/* Log Form Section */}
