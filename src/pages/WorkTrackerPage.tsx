@@ -6,6 +6,7 @@ import { TrendingUp, Loader2, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
 import { GrindEfficiency } from '../components/GrindEfficiency';
+import { WorkAnalytics } from '../components/WorkAnalytics';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
@@ -101,6 +102,8 @@ const WorkTrackerPage = () => {
                         onUpdate={upsertWorkLog}
                     />
                 </section>
+
+                <WorkAnalytics workHours={workLogs} />
             </div>
         </div>
     );
