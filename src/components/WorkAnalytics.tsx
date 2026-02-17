@@ -217,7 +217,13 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
                         }}>
                             <div style={{
                                 width: '100%',
-                                background: day.hours >= 10 ? '#FFD700' : (day.hours > 0 ? 'var(--color-primary)' : 'rgba(128,128,128,0.1)'),
+                                background:
+                                    day.hours >= 14 ? '#00FFFF' : // God Tier (Cyan)
+                                        day.hours >= 13 ? '#AF00FF' : // Zenith (Purple)
+                                            day.hours >= 12 ? '#FF0055' : // Overdrive (Crimson)
+                                                day.hours >= 11 ? '#FF8C00' : // Ignite (Orange)
+                                                    day.hours >= 10 ? '#FFD700' : // Legendary (Gold)
+                                                        (day.hours > 0 ? 'var(--color-primary)' : 'rgba(128,128,128,0.1)'),
                                 height: `${(day.hours / Math.max(maxHoursInView, 1)) * (chartHeight - 40)}px`,
                                 border: '3px solid var(--color-text)',
                                 borderBottom: 'none',
@@ -233,7 +239,13 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
                                         fontSize: '0.8rem',
                                         fontWeight: '900',
                                         whiteSpace: 'nowrap',
-                                        background: day.hours >= 10 ? '#FFD700' : 'var(--color-text)',
+                                        background:
+                                            day.hours >= 14 ? '#00FFFF' :
+                                                day.hours >= 13 ? '#AF00FF' :
+                                                    day.hours >= 12 ? '#FF0055' :
+                                                        day.hours >= 11 ? '#FF8C00' :
+                                                            day.hours >= 10 ? '#FFD700' :
+                                                                'var(--color-text)',
                                         color: day.hours >= 10 ? 'black' : 'var(--color-bg)',
                                         padding: '2px 6px',
                                         zIndex: 10,

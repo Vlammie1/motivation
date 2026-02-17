@@ -18,6 +18,12 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
 
     // Get theme-aware colors
     const getIntensity = (hours: number) => {
+        // Prestige Tiers (Same for all themes to signify absolute grind mastery)
+        if (hours >= 14) return '#00FFFF'; // GOD TIER (Cyan)
+        if (hours >= 13) return '#AF00FF'; // ZENITH (Purple)
+        if (hours >= 12) return '#FF0055'; // OVERDRIVE (Crimson)
+        if (hours >= 11) return '#FF8C00'; // IGNITE (Orange)
+
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
         if (hours === 0) return 'transparent';
@@ -30,7 +36,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 6) return 'rgba(57, 237, 123, 0.75)';
             if (hours < 8) return 'rgba(5, 133, 52, 1)';
             if (hours < 10) return 'rgba(1, 77, 52, 1)';
-            return '#FFD700'; // GOLD for 10+ (Legendary)
+            return '#FFD700'; // GOLD for 10-10.9 (Legendary)
         } else if (theme === 'cyber' || theme === 'system') {
             // SYSTEM theme - Cyan/magenta
             if (hours < 2) return 'rgba(255, 188, 238, 1)';
@@ -38,7 +44,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 6) return 'rgba(255, 3, 179, 1)';
             if (hours < 8) return 'rgba(204, 13, 109, 0.94)';
             if (hours < 10) return 'rgba(154, 2, 70, 0.78)';
-            return '#00FFFF'; // Electric Cyan for 10+
+            return '#00FFFF'; // Electric Cyan for 10-10.9
         } else if (theme === 'hazard' || theme === 'warning') {
             // WARNING theme - Orange/red
             if (hours < 2) return 'rgba(255, 134, 134, 0.93)';
@@ -46,7 +52,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 6) return 'rgba(255, 52, 52, 1)';
             if (hours < 8) return 'rgba(219, 5, 5, 1)';
             if (hours < 10) return 'rgba(134, 7, 7, 1)'; // Deep Red
-            return '#FFEA00'; // Warning Yellow for 10+
+            return '#FFEA00'; // Warning Yellow for 10-10.9
         } else {
             // PURE theme (light) - Blue gradient
             if (hours < 2) return 'rgba(59, 130, 246, 0.2)';
@@ -54,7 +60,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 6) return 'rgba(59, 130, 246, 0.8)';
             if (hours < 8) return 'rgba(37, 99, 235, 1)';
             if (hours < 10) return 'rgba(0, 29, 107, 1)'; // Dark Blue
-            return '#7A00FF'; // Vibrant Violet for 10+
+            return '#7A00FF'; // Vibrant Violet for 10-10.9
         }
 
         // Fallback
@@ -122,12 +128,21 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
                 </div>
             </div>
 
-            <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', fontSize: '0.8rem' }}>
-                <span>Less</span>
-                {[0, 1, 3, 5, 7.5, 10].map(h => (
-                    <div key={h} style={{ width: '12px', height: '12px', backgroundColor: getIntensity(h), border: '1px solid var(--color-text)' }} />
+            <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                <span style={{ marginRight: '4px' }}>LESS</span>
+                {[0, 2, 4, 6, 8, 10, 11, 12, 13, 14].map(h => (
+                    <div
+                        key={h}
+                        title={`${h}h+`}
+                        style={{
+                            width: '12px',
+                            height: '12px',
+                            backgroundColor: getIntensity(h),
+                            border: '1px solid var(--color-text)'
+                        }}
+                    />
                 ))}
-                <span>More</span>
+                <span style={{ marginLeft: '4px' }}>GRIND GOD</span>
             </div>
         </div >
     );
