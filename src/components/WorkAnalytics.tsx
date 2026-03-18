@@ -5,11 +5,12 @@ import { BarChart3, Award, Zap, Calendar, ChevronLeft, ChevronRight, TrendingUp,
 
 interface WorkAnalyticsProps {
     workHours: WorkHours;
+    onDayClick?: (date: string) => void;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
+export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours, onDayClick }) => {
     const [viewRange, setViewRange] = useState(14); // 7, 14, 28 days
     const [offset, setOffset] = useState(0); // Offset in units of viewRange
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -237,8 +238,11 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
                             height: '100%',
                             justifyContent: 'flex-end',
                             position: 'relative',
-                            minWidth: '25px'
-                        }}>
+                            minWidth: '25px',
+                            cursor: onDayClick ? 'pointer' : 'default'
+                        }}
+                        onClick={() => onDayClick?.(day.date)}
+                        >
                             <div style={{
                                 width: '100%',
                                 background:
@@ -341,6 +345,15 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
                     setHoveredIdx(Math.max(0, Math.min(n - 1, idx)));
                 };
 
+                const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+                    if (!onDayClick) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const svgX = (e.clientX - rect.left) * (SVG_W / rect.width);
+                    const step = n > 1 ? cW / (n - 1) : 1;
+                    const idx = Math.max(0, Math.min(n - 1, Math.round((svgX - PAD.left) / step)));
+                    onDayClick(lineChartData[idx].date);
+                };
+
                 const labelStep = Math.max(1, Math.ceil(n / 8));
                 const gradId = 'lcGrad';
 
@@ -382,9 +395,10 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours }) => {
                         <div style={{ background: 'rgba(var(--color-text-rgb), 0.02)', border: '2px solid rgba(var(--color-text-rgb), 0.08)', padding: '12px 8px 8px 8px', borderRadius: '0' }}>
                             <svg
                                 viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-                                style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair', overflow: 'visible' }}
+                                style={{ width: '100%', height: 'auto', display: 'block', cursor: onDayClick ? 'pointer' : 'crosshair', overflow: 'visible' }}
                                 onMouseMove={handleMouseMove}
                                 onMouseLeave={() => setHoveredIdx(null)}
+                                onClick={handleSvgClick}
                             >
                                 <defs>
                                     <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
+import { DayDetailModal } from '../components/DayDetailModal';
 import { TrendingUp, Loader2, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
@@ -10,13 +11,21 @@ import { WorkAnalytics } from '../components/WorkAnalytics';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
-    const { workLogs, loading: logsLoading, upsertWorkLog } = useSupabaseWorkLogs();
+    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, deleteWorkLogEntry } = useSupabaseWorkLogs();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [modalDate, setModalDate] = useState<string | null>(null);
 
     const currentYearPrefix = new Date().getFullYear().toString();
     const yearHours = Object.entries(workLogs)
         .filter(([date]) => date.startsWith(currentYearPrefix))
         .reduce((acc, [_, hours]) => acc + hours, 0);
+
+    // Count entries for today (approximate via sessions tracked in workLogs — we show live count from modal)
+    const todaySessions = 0; // updated after fetch; workLogs only stores total
+
+    const handleDayClick = (date: string) => {
+        setModalDate(date);
+    };
 
     if (authLoading || (user && logsLoading)) {
         return (
@@ -84,7 +93,14 @@ const WorkTrackerPage = () => {
                     boxShadow: 'var(--brutalist-shadow)'
                 }}>
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
-                    <WorkHeatmap workHours={workLogs} onSelectDate={setSelectedDate} selectedDate={selectedDate} />
+                    <WorkHeatmap
+                        workHours={workLogs}
+                        onSelectDate={(date) => {
+                            setSelectedDate(date);
+                            handleDayClick(date);
+                        }}
+                        selectedDate={selectedDate}
+                    />
                     <GrindEfficiency totalYearHours={yearHours} />
                 </section>
 
@@ -95,16 +111,28 @@ const WorkTrackerPage = () => {
                     background: 'var(--color-bg)',
                     boxShadow: 'var(--brutalist-shadow)'
                 }}>
-                    <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Log Your Hours</h2>
+                    <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Voeg Sessie Toe</h2>
                     <WorkLogForm
                         date={selectedDate}
                         currentHours={workLogs[selectedDate] || 0}
-                        onUpdate={upsertWorkLog}
+                        currentSessions={todaySessions}
+                        onAdd={addWorkLogEntry}
                     />
                 </section>
 
-                <WorkAnalytics workHours={workLogs} />
+                <WorkAnalytics workHours={workLogs} onDayClick={handleDayClick} />
             </div>
+
+            {modalDate !== null && (
+                <DayDetailModal
+                    date={modalDate}
+                    totalHours={workLogs[modalDate] || 0}
+                    allWorkHours={workLogs}
+                    onClose={() => setModalDate(null)}
+                    onDelete={deleteWorkLogEntry}
+                    fetchEntries={fetchWorkLogEntries}
+                />
+            )}
         </div>
     );
 };
