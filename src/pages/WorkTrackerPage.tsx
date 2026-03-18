@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
 import { GrindEfficiency } from '../components/GrindEfficiency';
 import { WorkAnalytics } from '../components/WorkAnalytics';
+import { ThemeSwitcher } from '../components/ThemeSwitcher';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
@@ -54,6 +55,11 @@ const WorkTrackerPage = () => {
 
     return (
         <div className="work-tracker-page">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+                <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
+                    <ThemeSwitcher />
+                </div>
+            </div>
             <header style={{ marginBottom: 'var(--spacing-xl)' }}>
                 <h1 style={{
                     fontSize: '3rem',
