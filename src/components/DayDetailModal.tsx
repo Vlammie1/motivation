@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { format, parseISO, getDay } from 'date-fns';
-import { X, Trash2, Clock, FileText } from 'lucide-react';
+import { X, Trash2, Clock, FileText, FolderOpen } from 'lucide-react';
 import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
+import type { Project } from '../hooks/useSupabaseProjects';
 
 interface DayDetailModalProps {
     date: string;
@@ -10,6 +11,7 @@ interface DayDetailModalProps {
     onClose: () => void;
     onDelete: (entryId: string, date: string) => Promise<void>;
     fetchEntries: (date: string) => Promise<WorkLogEntry[]>;
+    projects: Project[];
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -31,7 +33,7 @@ const formatDateHeading = (dateStr: string) => {
     }
 };
 
-export const DayDetailModal = ({ date, totalHours, allWorkHours, onClose, onDelete, fetchEntries }: DayDetailModalProps) => {
+export const DayDetailModal = ({ date, totalHours, allWorkHours, onClose, onDelete, fetchEntries, projects }: DayDetailModalProps) => {
     const [entries, setEntries] = useState<WorkLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -217,6 +219,26 @@ export const DayDetailModal = ({ date, totalHours, allWorkHours, onClose, onDele
                                                 <span style={{ fontSize: '0.85rem', opacity: 0.8, wordBreak: 'break-word' }}>{entry.note}</span>
                                             </div>
                                         )}
+                                        {entry.project_id && (() => {
+                                            const project = projects.find(p => p.id === entry.project_id);
+                                            if (!project) return null;
+                                            return (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                                    <FolderOpen size={12} style={{ opacity: 0.4, flexShrink: 0 }} />
+                                                    <span style={{
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 'bold',
+                                                        padding: '1px 6px',
+                                                        borderRadius: '2px',
+                                                        background: project.color + '22',
+                                                        color: project.color,
+                                                        border: `1px solid ${project.color}44`
+                                                    }}>
+                                                        {project.name}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     <button
                                         onClick={() => handleDelete(entry.id)}

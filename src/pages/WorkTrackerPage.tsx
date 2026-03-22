@@ -6,6 +6,7 @@ import { DayDetailModal } from '../components/DayDetailModal';
 import { TrendingUp, Loader2, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
+import { useSupabaseProjects } from '../hooks/useSupabaseProjects';
 import { GrindEfficiency } from '../components/GrindEfficiency';
 import { WorkAnalytics } from '../components/WorkAnalytics';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
@@ -13,6 +14,7 @@ import { ThemeSwitcher } from '../components/ThemeSwitcher';
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
     const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, deleteWorkLogEntry } = useSupabaseWorkLogs();
+    const { projects, addProject, deleteProject, getProjectsWithHours } = useSupabaseProjects();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [modalDate, setModalDate] = useState<string | null>(null);
 
@@ -123,6 +125,9 @@ const WorkTrackerPage = () => {
                         currentHours={workLogs[selectedDate] || 0}
                         currentSessions={todaySessions}
                         onAdd={addWorkLogEntry}
+                        getProjectsWithHours={getProjectsWithHours}
+                        addProject={addProject}
+                        deleteProject={deleteProject}
                     />
                 </section>
 
@@ -137,6 +142,7 @@ const WorkTrackerPage = () => {
                     onClose={() => setModalDate(null)}
                     onDelete={deleteWorkLogEntry}
                     fetchEntries={fetchWorkLogEntries}
+                    projects={projects}
                 />
             )}
         </div>

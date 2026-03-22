@@ -25,7 +25,7 @@ npm run preview   # Preview production build
 3. `src/hooks/useSupabase*.ts` — each hook owns one Supabase table (tasks, work_logs, profiles, lock_in_sessions)
 4. Components consume hooks directly — no global state manager
 
-**Supabase tables:** `tasks`, `work_logs` (upsert on user_id + work_date), `profiles` (lock_in_beat goal), `lock_in_sessions`
+**Supabase tables:** `tasks`, `work_logs` (upsert on user_id + work_date), `work_log_entries` (individual session entries with optional project_id), `projects` (user projects with name + color), `profiles` (lock_in_beat goal), `lock_in_sessions`
 
 **Theming:** 4 themes (light, dark, hazard, cyber) via CSS variables in `src/styles/design-tokens.css`. Theme state lives in `ThemeContext.tsx` and is persisted to localStorage.
 

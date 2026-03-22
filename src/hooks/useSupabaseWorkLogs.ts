@@ -16,6 +16,7 @@ export interface WorkLogEntry {
     work_date: string;
     hours: number;
     note: string | null;
+    project_id: string | null;
     created_at: string;
 }
 
@@ -61,7 +62,7 @@ export const useSupabaseWorkLogs = () => {
         fetchWorkLogs();
     }, [user?.id]);
 
-    const addWorkLogEntry = async (date: string, hours: number, note?: string) => {
+    const addWorkLogEntry = async (date: string, hours: number, note?: string, projectId?: string) => {
         if (!user) return;
 
         try {
@@ -72,7 +73,8 @@ export const useSupabaseWorkLogs = () => {
                     user_id: user.id,
                     work_date: date,
                     hours,
-                    note: note || null
+                    note: note || null,
+                    project_id: projectId || null
                 });
 
             if (insertError) {
