@@ -10,6 +10,7 @@ interface ActivityScheduleChartProps {
     workLogEntries: WorkLogEntry[];
     otherActivities: OtherActivity[];
     projects: Project[];
+    onDayClick?: (date: string) => void;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -18,7 +19,8 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
     dailyHabits,
     workLogEntries,
     otherActivities,
-    projects
+    projects,
+    onDayClick
 }) => {
     const [viewRange, setViewRange] = useState(14); // 7, 14, 30 days
     const [offset, setOffset] = useState(0);
@@ -194,8 +196,11 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                 width: `${100 / chartData.length}%`,
                                 height: '100%',
                                 display: 'flex',
-                                justifyContent: 'center'
-                            }}>
+                                justifyContent: 'center',
+                                cursor: onDayClick ? 'pointer' : 'default'
+                            }}
+                            onClick={() => onDayClick?.(day.date)}
+                            >
                                 {/* Connecting Line */}
                                 {day.wake !== null && day.sleep !== null && (
                                     <div style={{

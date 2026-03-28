@@ -206,6 +206,14 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                 </div>
             </div>
 
+            <ActivityScheduleChart
+                dailyHabits={dailyHabits}
+                workLogEntries={workLogEntries}
+                otherActivities={otherActivities}
+                projects={projects}
+                onDayClick={onDayClick}
+            />
+
             {/* Range Indicator */}
             <div style={{ textAlign: 'center', fontWeight: 'bold', margin: 'var(--spacing-md) 0', textTransform: 'uppercase', fontSize: '1rem', letterSpacing: '1px' }}>
                 {chartData[0].displayDate} - {chartData[chartData.length - 1].displayDate} ({viewRange} DAYS)
@@ -504,13 +512,6 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                     </div>
                 );
             })()}
-
-            <ActivityScheduleChart
-                dailyHabits={dailyHabits}
-                workLogEntries={workLogEntries}
-                otherActivities={otherActivities}
-                projects={projects}
-            />
 
             {/* Extra Stats Grid */}
             <div style={{
