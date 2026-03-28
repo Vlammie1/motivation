@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
@@ -11,32 +12,50 @@ import { GrindEfficiency } from '../components/GrindEfficiency';
 import { WorkAnalytics } from '../components/WorkAnalytics';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { DailyHabitsForm } from '../components/DailyHabitsForm';
+import { OtherActivitiesForm } from '../components/OtherActivitiesForm';
 import { useSupabaseDailyHabits } from '../hooks/useSupabaseDailyHabits';
+import { useSupabaseOtherActivities } from '../hooks/useSupabaseOtherActivities';
 import { subDays, format } from 'date-fns';
 import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
+import type { OtherActivity } from '../types/work';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
     const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry } = useSupabaseWorkLogs();
     const { projects, addProject, deleteProject, getProjectsWithHours } = useSupabaseProjects();
     const { dailyHabits, upsertDailyHabit } = useSupabaseDailyHabits();
+    const { activities: otherActivities, addOtherActivity, deleteOtherActivity } = useSupabaseOtherActivities();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [modalDate, setModalDate] = useState<string | null>(null);
     const [allEntries, setAllEntries] = useState<WorkLogEntry[]>([]);
+    const [allOtherActivities, setAllOtherActivities] = useState<OtherActivity[]>([]);
 
     // Fetch entries for the last 30 days for the activity chart
     useEffect(() => {
         const fetchRange = async () => {
             const end = new Date();
             const start = subDays(end, 30);
+            
+            // Work Logs
             const entries = await fetchWorkLogEntriesInRange(
                 format(start, 'yyyy-MM-dd'),
                 format(end, 'yyyy-MM-dd')
             );
             setAllEntries(entries);
+
+            // Other Activities
+            const { data, error } = await supabase
+                .from('other_activities')
+                .select('*')
+                .gte('work_date', format(start, 'yyyy-MM-dd'))
+                .lte('work_date', format(end, 'yyyy-MM-dd'));
+            
+            if (!error && data) {
+                setAllOtherActivities(data);
+            }
         };
         if (user) fetchRange();
-    }, [user, workLogs]); // Refetch when workLogs changes (e.g. after add/delete)
+    }, [user, workLogs, otherActivities]); // Refetch when logs or activities change
 
     const currentYearPrefix = new Date().getFullYear().toString();
     const yearHours = Object.entries(workLogs)
@@ -158,6 +177,16 @@ const WorkTrackerPage = () => {
                             onSave={upsertDailyHabit}
                         />
                     </div>
+
+                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '4px solid var(--color-text)', paddingTop: 'var(--spacing-lg)' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Andere Activiteiten</h2>
+                        <OtherActivitiesForm
+                            date={selectedDate}
+                            activities={otherActivities[selectedDate] || []}
+                            onAdd={addOtherActivity}
+                            onDelete={deleteOtherActivity}
+                        />
+                    </div>
                 </section>
 
                 <WorkAnalytics 
@@ -165,6 +194,7 @@ const WorkTrackerPage = () => {
                     onDayClick={handleDayClick} 
                     dailyHabits={dailyHabits}
                     workLogEntries={allEntries}
+                    otherActivities={allOtherActivities}
                     projects={projects}
                 />
             </div>

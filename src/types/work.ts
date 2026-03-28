@@ -8,3 +8,13 @@ export interface DailyHabit {
     sleep_time: string | null;
     created_at?: string;
 }
+
+export interface OtherActivity {
+    id: string;
+    user_id: string;
+    work_date: string;
+    label: string;
+    hours: number;
+    note: string | null;
+    created_at: string;
+}

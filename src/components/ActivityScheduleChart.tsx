@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { format, subDays, eachDayOfInterval, startOfDay, getDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import type { DailyHabit } from '../types/work';
+import type { DailyHabit, OtherActivity } from '../types/work';
 import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
 import type { Project } from '../hooks/useSupabaseProjects';
 
 interface ActivityScheduleChartProps {
     dailyHabits: Record<string, DailyHabit>;
     workLogEntries: WorkLogEntry[];
+    otherActivities: OtherActivity[];
     projects: Project[];
-    onDayClick?: (date: string) => void;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -17,12 +17,12 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
     dailyHabits,
     workLogEntries,
-    projects,
-    onDayClick
+    otherActivities,
+    projects
 }) => {
     const [viewRange, setViewRange] = useState(14); // 7, 14, 30 days
     const [offset, setOffset] = useState(0);
-    const [hoverInfo, setHoverInfo] = useState<{ date: string; type: 'wake' | 'sleep' | 'work'; label?: string; hours?: number; time?: string; note?: string | null } | null>(null);
+    const [hoverInfo, setHoverInfo] = useState<{ date: string; type: 'wake' | 'sleep' | 'work' | 'other'; label?: string; hours?: number; time?: string; note?: string | null } | null>(null);
 
     const chartData = useMemo(() => {
         const end = subDays(startOfDay(new Date()), offset * viewRange);
@@ -34,6 +34,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
             const dateStr = format(date, 'yyyy-MM-dd');
             const habit = dailyHabits[dateStr];
             const dayEntries = workLogEntries.filter(e => e.work_date === dateStr);
+            const dayOther = otherActivities.filter(e => e.work_date === dateStr);
 
             // Convert "HH:mm" to decimal hours
             const timeToDecimal = (timeStr: string | null | undefined) => {
@@ -45,13 +46,14 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
             let wake = timeToDecimal(habit?.wake_time);
             let sleep = timeToDecimal(habit?.sleep_time);
 
-            // Handle sleep after midnight (e.g. 01:00 becomes 25:00)
+            // Handle sleep after midnight
             if (wake !== null && sleep !== null && sleep < wake) {
                 sleep += 24;
             }
 
             const awakeHours = (wake !== null && sleep !== null) ? (sleep - wake) : 0;
             const totalWorkHours = dayEntries.reduce((sum, e) => sum + Number(e.hours), 0);
+            const totalOtherHours = dayOther.reduce((sum, e) => sum + Number(e.hours), 0);
 
             return {
                 date: dateStr,
@@ -61,24 +63,25 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                 sleep,
                 awakeHours,
                 totalWorkHours,
+                totalOtherHours,
                 entries: dayEntries,
+                otherEntries: dayOther,
                 habit
             };
         });
-    }, [dailyHabits, workLogEntries, viewRange, offset]);
+    }, [dailyHabits, workLogEntries, otherActivities, viewRange, offset]);
 
     // Calculate Y-axis range
     const yRange = useMemo(() => {
-        let minWake = 8; // Default
-        let maxSleep = 23; // Default
+        let minWake = 8;
+        let maxSleep = 23;
 
         chartData.forEach((d: any) => {
             if (d.wake !== null) minWake = Math.min(minWake, d.wake);
             if (d.sleep !== null) maxSleep = Math.max(maxSleep, d.sleep);
             
-            // Also consider work bars if they go beyond wake/sleep
-            if (d.wake !== null && d.totalWorkHours > 0) {
-                maxSleep = Math.max(maxSleep, d.wake + d.totalWorkHours);
+            if (d.wake !== null && (d.totalWorkHours + d.totalOtherHours) > 0) {
+                maxSleep = Math.max(maxSleep, d.wake + d.totalWorkHours + d.totalOtherHours);
             }
         });
 
@@ -88,7 +91,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
         return { min, max };
     }, [chartData]);
 
-    const chartHeight = 350; // Slightly smaller to fit inside analytics
+    const chartHeight = 350;
     const getY = (time: number) => {
         const totalRange = yRange.max - yRange.min;
         return ((time - yRange.min) / totalRange) * chartHeight;
@@ -202,28 +205,31 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                         width: '2px',
                                         height: `${getY(day.sleep) - getY(day.wake)}px`,
                                         background: 'var(--color-text)',
-                                        opacity: 0.15,
+                                        opacity: 0.1,
                                         zIndex: 1
                                     }} />
                                 )}
 
-                                {/* Work Bars */}
+                                {/* Stacked Activities */}
                                 {(() => {
                                     let currentY = day.wake || 8;
-                                    const bars = day.entries.map((entry: WorkLogEntry) => {
+                                    const stackItems: React.ReactNode[] = [];
+
+                                    // 1. Work Entries
+                                    day.entries.forEach((entry: WorkLogEntry) => {
                                         const h = Number(entry.hours);
                                         const hStart = currentY;
                                         const hEnd = currentY + h;
                                         const color = entry.project_id ? projectColorMap[entry.project_id] || '#888' : '#888';
                                         const projectName = entry.project_id ? projects.find(p => p.id === entry.project_id)?.name : 'Geen Project';
                                         
-                                        const bar = (
+                                        stackItems.push(
                                             <div
-                                                key={entry.id}
+                                                key={`work-${entry.id}`}
                                                 style={{
                                                     position: 'absolute',
-                                                    left: '20%',
-                                                    right: '20%',
+                                                    left: '15%',
+                                                    right: '15%',
                                                     bottom: `${getY(hStart)}px`,
                                                     height: `${getY(hEnd) - getY(hStart)}px`,
                                                     background: color,
@@ -242,12 +248,11 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                             />
                                         );
                                         currentY += h;
-                                        return bar;
                                     });
 
-                                    // Work Hour Badge (Total work)
+                                    // Work Hour Badge (ONLY WORK)
                                     if (day.totalWorkHours > 0 && day.wake !== null) {
-                                        bars.push(
+                                        stackItems.push(
                                             <div key="work-badge" style={{
                                                 position: 'absolute',
                                                 left: '50%',
@@ -268,7 +273,42 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                         );
                                     }
 
-                                    return bars;
+                                    // 2. Other Activities (Stacked ON TOP of work)
+                                    day.otherEntries.forEach((entry: OtherActivity) => {
+                                        const h = Number(entry.hours);
+                                        const hStart = currentY;
+                                        const hEnd = currentY + h;
+                                        const color = '#A0A0A0'; // Neutral grey for other activities
+                                        
+                                        stackItems.push(
+                                            <div
+                                                key={`other-${entry.id}`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: '20%',
+                                                    right: '20%',
+                                                    bottom: `${getY(hStart)}px`,
+                                                    height: `${getY(hEnd) - getY(hStart)}px`,
+                                                    background: color,
+                                                    border: '1.5px solid var(--color-text)',
+                                                    borderStyle: 'dashed',
+                                                    zIndex: 2,
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={() => setHoverInfo({ 
+                                                    date: day.date, 
+                                                    type: 'other', 
+                                                    label: entry.label, 
+                                                    hours: h,
+                                                    note: entry.note
+                                                })}
+                                                onMouseLeave={() => setHoverInfo(null)}
+                                            />
+                                        );
+                                        currentY += h;
+                                    });
+
+                                    return stackItems;
                                 })()}
 
                                 {/* Wake Point */}
@@ -347,7 +387,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                         ))}
                     </div>
 
-                    {/* Fixed Position Tooltip Area to avoid cutoff */}
+                    {/* Fixed Position Tooltip Area */}
                     {hoverInfo && (
                         <div style={{
                             position: 'absolute',
@@ -367,9 +407,9 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                             <div style={{ textTransform: 'uppercase', fontSize: '0.65rem', opacity: 0.7, marginBottom: '2px' }}>{hoverInfo.date}</div>
                             {hoverInfo.type === 'wake' && <div>Wake Up: <span style={{ color: 'var(--color-primary)' }}>{hoverInfo.time}</span></div>}
                             {hoverInfo.type === 'sleep' && <div>Sleep: <span style={{ color: '#AF00FF' }}>{hoverInfo.time}</span></div>}
-                            {hoverInfo.type === 'work' && (
+                            {(hoverInfo.type === 'work' || hoverInfo.type === 'other') && (
                                 <>
-                                    <div style={{ marginBottom: '2px' }}>Project: <span style={{ color: 'var(--color-primary)' }}>{hoverInfo.label}</span></div>
+                                    <div style={{ marginBottom: '2px' }}>{hoverInfo.type === 'work' ? 'Project' : 'Activiteit'}: <span style={{ color: 'var(--color-primary)' }}>{hoverInfo.label}</span></div>
                                     <div style={{ marginBottom: '2px' }}>Duree: <span style={{ color: 'var(--color-primary)' }}>{hoverInfo.hours?.toFixed(1)}h</span></div>
                                     {hoverInfo.note && (
                                         <div style={{ 
@@ -400,6 +440,9 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <div style={{ width: '16px', height: '8px', background: '#888', border: '1px solid var(--color-text)' }} /> Work
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '16px', height: '8px', background: '#A0A0A0', border: '1px dashed var(--color-text)' }} /> Andere
                 </div>
             </div>
         </div>
