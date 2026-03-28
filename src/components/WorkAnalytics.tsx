@@ -3,14 +3,28 @@ import type { WorkHours } from '../types/work';
 import { format, subDays, eachDayOfInterval, startOfDay, parseISO, startOfYear, differenceInDays, endOfYear, getDay } from 'date-fns';
 import { BarChart3, Award, Zap, Calendar, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
 
+import { ActivityScheduleChart } from './ActivityScheduleChart';
+import type { DailyHabit } from '../types/work';
+import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
+import type { Project } from '../hooks/useSupabaseProjects';
+
 interface WorkAnalyticsProps {
     workHours: WorkHours;
     onDayClick?: (date: string) => void;
+    dailyHabits: Record<string, DailyHabit>;
+    workLogEntries: WorkLogEntry[];
+    projects: Project[];
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours, onDayClick }) => {
+export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ 
+    workHours, 
+    onDayClick,
+    dailyHabits,
+    workLogEntries,
+    projects
+}) => {
     const [viewRange, setViewRange] = useState(14); // 7, 14, 28 days
     const [offset, setOffset] = useState(0); // Offset in units of viewRange
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -488,6 +502,13 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ workHours, onDayCl
                     </div>
                 );
             })()}
+
+            <ActivityScheduleChart
+                dailyHabits={dailyHabits}
+                workLogEntries={workLogEntries}
+                projects={projects}
+                onDayClick={onDayClick}
+            />
 
             {/* Extra Stats Grid */}
             <div style={{

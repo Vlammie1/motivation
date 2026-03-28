@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
@@ -10,13 +10,33 @@ import { useSupabaseProjects } from '../hooks/useSupabaseProjects';
 import { GrindEfficiency } from '../components/GrindEfficiency';
 import { WorkAnalytics } from '../components/WorkAnalytics';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
+import { DailyHabitsForm } from '../components/DailyHabitsForm';
+import { useSupabaseDailyHabits } from '../hooks/useSupabaseDailyHabits';
+import { subDays, format } from 'date-fns';
+import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
-    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, deleteWorkLogEntry } = useSupabaseWorkLogs();
+    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry } = useSupabaseWorkLogs();
     const { projects, addProject, deleteProject, getProjectsWithHours } = useSupabaseProjects();
+    const { dailyHabits, upsertDailyHabit } = useSupabaseDailyHabits();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [modalDate, setModalDate] = useState<string | null>(null);
+    const [allEntries, setAllEntries] = useState<WorkLogEntry[]>([]);
+
+    // Fetch entries for the last 30 days for the activity chart
+    useEffect(() => {
+        const fetchRange = async () => {
+            const end = new Date();
+            const start = subDays(end, 30);
+            const entries = await fetchWorkLogEntriesInRange(
+                format(start, 'yyyy-MM-dd'),
+                format(end, 'yyyy-MM-dd')
+            );
+            setAllEntries(entries);
+        };
+        if (user) fetchRange();
+    }, [user, workLogs]); // Refetch when workLogs changes (e.g. after add/delete)
 
     const currentYearPrefix = new Date().getFullYear().toString();
     const yearHours = Object.entries(workLogs)
@@ -103,7 +123,7 @@ const WorkTrackerPage = () => {
                     <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
                     <WorkHeatmap
                         workHours={workLogs}
-                        onSelectDate={(date) => {
+                        onSelectDate={(date: string) => {
                             setSelectedDate(date);
                             handleDayClick(date);
                         }}
@@ -129,9 +149,24 @@ const WorkTrackerPage = () => {
                         addProject={addProject}
                         deleteProject={deleteProject}
                     />
+
+                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '4px solid var(--color-text)', paddingTop: 'var(--spacing-lg)' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Dagelijkse Gewoontes</h2>
+                        <DailyHabitsForm
+                            date={selectedDate}
+                            habit={dailyHabits[selectedDate]}
+                            onSave={upsertDailyHabit}
+                        />
+                    </div>
                 </section>
 
-                <WorkAnalytics workHours={workLogs} onDayClick={handleDayClick} />
+                <WorkAnalytics 
+                    workHours={workLogs} 
+                    onDayClick={handleDayClick} 
+                    dailyHabits={dailyHabits}
+                    workLogEntries={allEntries}
+                    projects={projects}
+                />
             </div>
 
             {modalDate !== null && (

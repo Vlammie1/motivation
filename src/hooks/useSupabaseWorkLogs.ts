@@ -131,6 +131,26 @@ export const useSupabaseWorkLogs = () => {
         return data || [];
     };
 
+    const fetchWorkLogEntriesInRange = async (startDate: string, endDate: string): Promise<WorkLogEntry[]> => {
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('work_log_entries')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('work_date', startDate)
+            .lte('work_date', endDate)
+            .order('work_date', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching work log entries in range:', error);
+            return [];
+        }
+
+        return data || [];
+    };
+
     const deleteWorkLogEntry = async (entryId: string, date: string) => {
         if (!user) return;
 
@@ -201,5 +221,5 @@ export const useSupabaseWorkLogs = () => {
         }
     };
 
-    return { workLogs, loading, upsertWorkLog, addWorkLogEntry, fetchWorkLogEntries, deleteWorkLogEntry, refresh: fetchWorkLogs };
+    return { workLogs, loading, upsertWorkLog, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry, refresh: fetchWorkLogs };
 };
