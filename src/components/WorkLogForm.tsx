@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FolderOpen, X } from 'lucide-react';
+import { FolderOpen, X, Sparkles, Loader2 } from 'lucide-react';
+import { generateGeminiContent } from '../lib/gemini';
 import { ProjectsModal } from './ProjectsModal';
 import type { ProjectWithHours } from '../hooks/useSupabaseProjects';
 
@@ -24,6 +25,9 @@ export const WorkLogForm = ({
 }: WorkLogFormProps) => {
     const [hours, setHours] = useState<string>('');
     const [note, setNote] = useState<string>('');
+    const [isImproving, setIsImproving] = useState(false);
+    const [showAIPopover, setShowAIPopover] = useState(false);
+    const [aiDraft, setAiDraft] = useState('');
     const [selectedProject, setSelectedProject] = useState<{ id: string; name: string; color: string } | null>(null);
     const [showProjectsModal, setShowProjectsModal] = useState(false);
 
@@ -47,6 +51,30 @@ export const WorkLogForm = ({
     const handleProjectSelect = (project: { id: string; name: string; color: string }) => {
         setSelectedProject(project);
         setShowProjectsModal(false);
+    };
+
+    const handleAIImprove = async () => {
+        if (!aiDraft.trim()) return;
+        
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+            alert('Voeg VITE_GEMINI_API_KEY toe aan je .env bestand!');
+            return;
+        }
+
+        setIsImproving(true);
+        const prompt = `Verbeter de volgende notitie voor een timetracker om het professioneler en duidelijker te maken. Houd het kort en krachtig (max 500 tekens). Antwoord ALLEEN met de verbeterde tekst, geen inleiding of afsluiting.
+        Concept: "${aiDraft}"`;
+
+        const result = await generateGeminiContent(prompt, apiKey);
+        if (result.error) {
+            alert(`AI Fout: ${result.error}`);
+        } else if (result.text) {
+            setNote(result.text.trim().slice(0, 500));
+            setShowAIPopover(false);
+            setAiDraft('');
+        }
+        setIsImproving(false);
     };
 
     return (
@@ -134,14 +162,92 @@ export const WorkLogForm = ({
                     </button>
                 </div>
 
-                <div>
-                    <label htmlFor="note-input" style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                        Note <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 'normal' }}>(optional)</span>
-                    </label>
+                <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
+                        <label htmlFor="note-input" style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            Note <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 'normal' }}>(optional)</span>
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setShowAIPopover(!showAIPopover)}
+                            title="AI Schrijfhulp"
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: 'var(--color-primary)',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                textTransform: 'uppercase',
+                                padding: '2px 4px',
+                            }}
+                        >
+                            <Sparkles size={12} />
+                            AI Hulp
+                        </button>
+                    </div>
+
+                    {showAIPopover && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 0,
+                            width: '280px',
+                            background: 'var(--color-bg)',
+                            border: '3px solid black',
+                            boxShadow: '6px 6px 0px black',
+                            padding: '12px',
+                            zIndex: 10,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            marginTop: '4px'
+                        }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase' }}>AI Verbeteraar</div>
+                            <textarea
+                                value={aiDraft}
+                                onChange={(e) => setAiDraft(e.target.value.slice(0, 500))}
+                                placeholder="Typ hier kort wat je deed..."
+                                rows={3}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    border: '2px solid black',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'var(--font-mono)',
+                                    resize: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                            <button
+                                onClick={handleAIImprove}
+                                disabled={isImproving || !aiDraft.trim()}
+                                style={{
+                                    background: 'var(--color-primary)',
+                                    color: 'white',
+                                    border: '2px solid black',
+                                    padding: '6px',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                {isImproving ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                Verbeter & Gebruik
+                            </button>
+                        </div>
+                    )}
+
                     <textarea
                         id="note-input"
                         value={note}
-                        onChange={(e) => setNote(e.target.value.slice(0, 200))}
+                        onChange={(e) => setNote(e.target.value.slice(0, 500))}
                         placeholder="Waar heb je aan gewerkt?"
                         rows={2}
                         style={{
@@ -158,7 +264,7 @@ export const WorkLogForm = ({
                         }}
                     />
                     <div style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'right', marginTop: '2px' }}>
-                        {note.length}/200
+                        {note.length}/500
                     </div>
                 </div>
 

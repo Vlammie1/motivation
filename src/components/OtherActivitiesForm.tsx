@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Sparkles, Loader2 } from 'lucide-react';
+import { generateGeminiContent } from '../lib/gemini';
 import type { OtherActivity } from '../types/work';
 
 interface OtherActivitiesFormProps {
@@ -19,6 +20,29 @@ export const OtherActivitiesForm: React.FC<OtherActivitiesFormProps> = ({
     const [hours, setHours] = useState('');
     const [note, setNote] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isImproving, setIsImproving] = useState(false);
+
+    const handleAIImprove = async () => {
+        if (!note.trim()) return;
+        
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+            alert('Voeg VITE_GEMINI_API_KEY toe aan je .env bestand!');
+            return;
+        }
+
+        setIsImproving(true);
+        const prompt = `Verbeter de volgende notitie voor een activiteit tracker om het professioneler en duidelijker te maken. Houd het kort en krachtig (max 500 tekens). Antwoord ALLEEN met de verbeterde tekst, geen inleiding of afsluiting.
+        Notitie: "${note}"`;
+
+        const result = await generateGeminiContent(prompt, apiKey);
+        if (result.error) {
+            alert(`AI Fout: ${result.error}`);
+        } else if (result.text) {
+            setNote(result.text.trim().slice(0, 500));
+        }
+        setIsImproving(false);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,20 +97,49 @@ export const OtherActivitiesForm: React.FC<OtherActivitiesFormProps> = ({
                         }}
                     />
                 </div>
-                <div style={{ flex: 2, minWidth: '150px' }}>
+                <div style={{ flex: 2, minWidth: '150px', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                         <span style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.7 }}>Opmerking</span>
+                         <button
+                            type="button"
+                            onClick={handleAIImprove}
+                            disabled={isImproving || !note.trim()}
+                            title="AI Verbeter"
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: 'var(--color-primary)',
+                                fontSize: '0.65rem',
+                                fontWeight: 'bold',
+                                textTransform: 'uppercase',
+                                opacity: (!note.trim() || isImproving) ? 0.3 : 1
+                            }}
+                        >
+                            {isImproving ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                            AI
+                        </button>
+                    </div>
                     <input
                         type="text"
                         placeholder="Opmerking (optioneel)"
                         value={note}
-                        onChange={(e) => setNote(e.target.value)}
+                        onChange={(e) => setNote(e.target.value.slice(0, 500))}
                         style={{
                             width: '100%',
                             padding: '12px',
                             border: '3px solid var(--color-text)',
                             background: 'var(--color-bg)',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            boxSizing: 'border-box'
                         }}
                     />
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textAlign: 'right', marginTop: '2px' }}>
+                        {note.length}/500
+                    </div>
                 </div>
                 <button
                     type="submit"

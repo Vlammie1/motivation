@@ -18,6 +18,7 @@ import { useSupabaseOtherActivities } from '../hooks/useSupabaseOtherActivities'
 import { subDays, format } from 'date-fns';
 import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
 import type { OtherActivity } from '../types/work';
+import { AIAssistant } from '../components/AIAssistant';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
@@ -210,6 +211,18 @@ const WorkTrackerPage = () => {
                     projects={projects}
                 />
             )}
+
+            <AIAssistant 
+                data={{
+                    workHours: workLogs,
+                    dailyHabits,
+                    workLogEntries: allEntries,
+                    otherActivities: allOtherActivities,
+                    projects
+                }} 
+                onAddWorkLog={addWorkLogEntry}
+                onUpsertHabit={upsertDailyHabit}
+            />
         </div>
     );
 };
