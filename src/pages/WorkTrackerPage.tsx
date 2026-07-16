@@ -196,6 +196,7 @@ const WorkTrackerPage = () => {
                 }}
                 onAddWorkLog={addWorkLogEntry}
                 onUpsertHabit={upsertDailyHabit}
+                onAddOtherActivity={addOtherActivity}
             />
         </div>
     );

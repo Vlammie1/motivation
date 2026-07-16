@@ -14,12 +14,17 @@ export interface GeminiResponse {
     error?: string;
 }
 
+/** Zonder deze grens blijft een verzoek dat nooit antwoordt eindeloos hangen. */
+const REQUEST_TIMEOUT_MS = 60_000;
+
 const callGemini = async (
     contents: any[],
     apiKey: string,
     systemInstruction?: string,
     tools?: any[]
 ): Promise<GeminiResponse> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
         const payload: any = { contents };
 
@@ -37,7 +42,8 @@ const callGemini = async (
         const response = await fetch(`${ENDPOINT}?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
 
         const data = await response.json();
@@ -52,7 +58,12 @@ const callGemini = async (
 
         return { text, tool_calls, modelParts: parts };
     } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+            return { text: '', error: 'Gemini reageerde niet binnen 60 seconden. Probeer het opnieuw.' };
+        }
         return { text: '', error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+        clearTimeout(timeout);
     }
 };
 
