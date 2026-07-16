@@ -4,10 +4,11 @@ import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
 import { DayDetailModal } from '../components/DayDetailModal';
-import { TrendingUp, Loader2, Lock } from 'lucide-react';
+import { TrendingUp, Loader2, Lock, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
-import { useSupabaseProjects } from '../hooks/useSupabaseProjects';
+import { useProjects } from '../context/ProjectsContext';
+import { useTimer } from '../context/TimerContext';
 import { GrindEfficiency } from '../components/GrindEfficiency';
 import { WorkAnalytics } from '../components/WorkAnalytics';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
@@ -22,8 +23,9 @@ import { AIAssistant } from '../components/AIAssistant';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
-    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry } = useSupabaseWorkLogs();
-    const { projects, addProject, deleteProject, getProjectsWithHours } = useSupabaseProjects();
+    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry, refresh: refreshWorkLogs } = useSupabaseWorkLogs();
+    const { projects, addProject, deleteProject, getProjectsWithHours } = useProjects();
+    const { openStart, timer, version } = useTimer();
     const { dailyHabits, upsertDailyHabit } = useSupabaseDailyHabits();
     const { activities: otherActivities, addOtherActivity, deleteOtherActivity } = useSupabaseOtherActivities();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -57,6 +59,12 @@ const WorkTrackerPage = () => {
         };
         if (user) fetchRange();
     }, [user, workLogs, otherActivities]); // Refetch when logs or activities change
+
+    // De timer schrijft sessies buiten deze pagina om weg; na elke opgeslagen
+    // sessie moeten de totalen hier opnieuw opgehaald worden.
+    useEffect(() => {
+        if (version > 0) refreshWorkLogs();
+    }, [version]);
 
     const currentYearPrefix = new Date().getFullYear().toString();
     const yearHours = Object.entries(workLogs)
@@ -101,6 +109,24 @@ const WorkTrackerPage = () => {
                 <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
                     <ThemeSwitcher />
                 </div>
+                <button
+                    onClick={() => openStart()}
+                    disabled={!!timer}
+                    title={timer ? 'Er loopt al een timer' : 'Start een timer'}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        background: 'var(--color-primary)', color: 'white',
+                        padding: 'var(--spacing-md) var(--spacing-xl)',
+                        fontFamily: 'var(--font-heading)', textTransform: 'uppercase',
+                        border: 'var(--brutalist-border)', boxShadow: 'var(--brutalist-shadow)',
+                        cursor: timer ? 'not-allowed' : 'crosshair',
+                        opacity: timer ? 0.4 : 1,
+                        fontSize: '1.2rem'
+                    }}
+                >
+                    <Play size={20} />
+                    {timer ? 'Timer loopt' : 'Start timer'}
+                </button>
             </div>
             <header style={{ marginBottom: 'var(--spacing-xl)' }}>
                 <h1 style={{

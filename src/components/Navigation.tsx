@@ -1,4 +1,4 @@
-import { Home, ClipboardList, LogIn, LogOut, User } from 'lucide-react';
+import { FolderKanban, ClipboardList, LogIn, LogOut, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
@@ -34,15 +34,15 @@ export const Navigation = () => {
                     onClick={() => navigate('/')}
                     style={navItemStyle('/')}
                 >
-                    <Home size={18} />
-                    Home
+                    <ClipboardList size={18} />
+                    Tracker
                 </button>
                 <button
-                    onClick={() => navigate('/work')}
-                    style={navItemStyle('/work')}
+                    onClick={() => navigate('/projects')}
+                    style={navItemStyle('/projects')}
                 >
-                    <ClipboardList size={18} />
-                    Work Tracker
+                    <FolderKanban size={18} />
+                    Projecten
                 </button>
 
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--spacing-md)' }}>

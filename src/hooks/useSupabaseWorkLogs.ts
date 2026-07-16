@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { insertWorkEntry, deleteWorkEntry } from '../lib/workEntries';
 
 export interface WorkLog {
     id: string;
@@ -66,50 +67,11 @@ export const useSupabaseWorkLogs = () => {
         if (!user) return;
 
         try {
-            // Insert the new entry
-            const { error: insertError } = await supabase
-                .from('work_log_entries')
-                .insert({
-                    user_id: user.id,
-                    work_date: date,
-                    hours,
-                    note: note || null,
-                    project_id: projectId || null
-                });
-
-            if (insertError) {
-                console.error('Error inserting work log entry:', insertError);
-                alert('Failed to save entry: ' + insertError.message);
-                return;
-            }
-
-            // Recalculate total for this date from all entries
-            const { data: entries, error: fetchError } = await supabase
-                .from('work_log_entries')
-                .select('hours')
-                .eq('user_id', user.id)
-                .eq('work_date', date);
-
-            if (fetchError) {
-                console.error('Error fetching entries for total:', fetchError);
-                return;
-            }
-
-            const newTotal = (entries || []).reduce((sum, e) => sum + Number(e.hours), 0);
-
-            // Upsert the total into work_logs
-            const { error: upsertError } = await supabase
-                .from('work_logs')
-                .upsert({ user_id: user.id, work_date: date, hours: newTotal }, { onConflict: 'user_id,work_date' });
-
-            if (upsertError) {
-                console.error('Error updating work_logs total:', upsertError);
-            } else {
-                setWorkLogs(prev => ({ ...prev, [date]: newTotal }));
-            }
+            const newTotal = await insertWorkEntry(user.id, date, hours, note, projectId);
+            setWorkLogs(prev => ({ ...prev, [date]: newTotal }));
         } catch (err) {
-            console.error('Unexpected error adding work log entry:', err);
-            alert('Failed to save entry: ' + err);
+            console.error('Error adding work log entry:', err);
+            alert('Sessie opslaan mislukt: ' + (err instanceof Error ? err.message : err));
         }
     };
 
@@ -154,49 +116,19 @@ export const useSupabaseWorkLogs = () => {
     const deleteWorkLogEntry = async (entryId: string, date: string) => {
         if (!user) return;
 
-        const { error: deleteError } = await supabase
-            .from('work_log_entries')
-            .delete()
-            .eq('id', entryId)
-            .eq('user_id', user.id);
-
-        if (deleteError) {
-            console.error('Error deleting work log entry:', deleteError);
-            alert('Failed to delete entry: ' + deleteError.message);
-            return;
-        }
-
-        // Recalculate total
-        const { data: entries, error: fetchError } = await supabase
-            .from('work_log_entries')
-            .select('hours')
-            .eq('user_id', user.id)
-            .eq('work_date', date);
-
-        if (fetchError) {
-            console.error('Error fetching entries after delete:', fetchError);
-            return;
-        }
-
-        const newTotal = (entries || []).reduce((sum, e) => sum + Number(e.hours), 0);
-
-        if (newTotal === 0) {
-            // Remove from work_logs if no entries left
-            await supabase
-                .from('work_logs')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('work_date', date);
+        try {
+            const newTotal = await deleteWorkEntry(user.id, entryId, date);
             setWorkLogs(prev => {
-                const next = { ...prev };
-                delete next[date];
-                return next;
+                if (newTotal === 0) {
+                    const next = { ...prev };
+                    delete next[date];
+                    return next;
+                }
+                return { ...prev, [date]: newTotal };
             });
-        } else {
-            await supabase
-                .from('work_logs')
-                .upsert({ user_id: user.id, work_date: date, hours: newTotal }, { onConflict: 'user_id,work_date' });
-            setWorkLogs(prev => ({ ...prev, [date]: newTotal }));
+        } catch (err) {
+            console.error('Error deleting work log entry:', err);
+            alert('Sessie verwijderen mislukt: ' + (err instanceof Error ? err.message : err));
         }
     };
 

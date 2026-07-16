@@ -16,16 +16,22 @@ npm run preview   # Preview production build
 **Stack:** React 19 + TypeScript + Vite, deployed to Vercel. Supabase for auth, database, and RLS. No backend server — all data access is client-side via `@supabase/supabase-js`.
 
 **Routes (React Router):**
-- `/` — Main task management tool (`App.tsx`)
-- `/work` — Work analytics & hour logging (`src/pages/WorkTrackerPage.tsx`)
+- `/` — Work analytics & hour logging (`src/pages/WorkTrackerPage.tsx`); `/work` is a legacy alias
+- `/projects` — Project management & per-project stats (`src/pages/ProjectsPage.tsx`)
 
 **Data flow:**
 1. `src/lib/supabase.ts` — single Supabase client instance
 2. `src/context/AuthContext.tsx` — manages session + profile; auto-creates profile on first login
-3. `src/hooks/useSupabase*.ts` — each hook owns one Supabase table (tasks, work_logs, profiles, lock_in_sessions)
-4. Components consume hooks directly — no global state manager
+3. `src/context/ProjectsContext.tsx` — shared project list (wraps `useSupabaseProjects`)
+4. `src/context/TimerContext.tsx` — the live timer; owns `active_timers` and writes sessions
+5. `src/hooks/useSupabase*.ts` — each hook owns one Supabase table
+6. Components consume hooks/contexts directly — no global state manager
 
-**Supabase tables:** `tasks`, `work_logs` (upsert on user_id + work_date), `work_log_entries` (individual session entries with optional project_id), `projects` (user projects with name + color), `profiles` (lock_in_beat goal), `lock_in_sessions`
+**The timer** is the primary logging path. `src/components/TimerLayer.tsx` renders all timer UI outside the routes so it survives navigation. Flow: start modal (project + intent) → `FocusMode` (or `TimerBar` when minimized) → confirm modal (editable duration + note) → `work_log_entries` row. Timer state lives in the DB, not localStorage, so it survives reloads and works across devices. A timer found running for >4h on load is assumed forgotten and prompts for the real duration.
+
+`src/lib/workEntries.ts` is the single writer for work entries — `work_logs` holds per-day totals derived from `work_log_entries`, so every mutation must go through it to keep the two in sync.
+
+**Supabase tables:** `work_logs` (per-day total, upsert on user_id + work_date), `work_log_entries` (individual sessions with optional project_id), `projects` (name, color, archived), `active_timers` (one row per user, PK user_id), `daily_habits`, `other_activities`, `profiles`. `tasks` and `lock_in_sessions` still exist but are no longer read or written by the app.
 
 **Theming:** 4 themes (light, dark, hazard, cyber) via CSS variables in `src/styles/design-tokens.css`. Theme state lives in `ThemeContext.tsx` and is persisted to localStorage.
 
