@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MessageSquare, X, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { generateGeminiContent, respondToToolCall } from '../lib/gemini';
+import { generateGeminiContent, continueGeminiConversation } from '../lib/gemini';
 import type { DailyHabit, OtherActivity } from '../types/work';
 import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
 import type { Project } from '../hooks/useSupabaseProjects';
@@ -132,7 +132,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
             Voor acties (add/set) vraag je toestemming via de tool call.
             Antwoord altijd professioneel in het Nederlands.`;
 
-            let currentHistory: any[] = [{ role: 'user', parts: [{ text: userMsg }] }];
+            const currentHistory: any[] = [{ role: 'user', parts: [{ text: userMsg }] }];
             let response = await generateGeminiContent(userMsg, apiKey, systemInst, tools);
             if (response.error) throw new Error(response.error);
 
@@ -143,30 +143,27 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
                     setPendingAction({ toolName: actionCall.name, args: actionCall.args, id: actionCall.name + Date.now() });
                     setMessages(prev => [...prev, { role: 'ai', content: response.text || 'Ik heb een actie voorbereid. Bevestigen?', actionProposal: { toolName: actionCall.name, args: actionCall.args, id: actionCall.name + Date.now() } }]);
                     setIsLoading(false);
-                    return; 
+                    return;
                 }
 
                 const results = await Promise.all(response.tool_calls.map(async tc => ({ name: tc.name, content: await executeToolInternal(tc.name, tc.args) })));
-                currentHistory.push({ role: 'model', parts: response.tool_calls.map(tc => ({ functionCall: tc })) });
-                
-                const toolResultsPart = { 
-                    role: 'user', 
-                    parts: results.map(r => ({ 
-                        functionResponse: { 
-                            name: r.name, 
-                            response: { name: r.name, content: r.content } 
-                        } 
-                    })) 
-                };
 
-                response = await respondToToolCall(currentHistory, results, apiKey, systemInst);
+                // The model's parts go back untouched — they carry the thought signatures Gemini
+                // requires alongside each functionCall.
+                currentHistory.push({ role: 'model', parts: response.modelParts });
+                currentHistory.push({
+                    role: 'user',
+                    parts: results.map(r => ({
+                        functionResponse: {
+                            name: r.name,
+                            response: { name: r.name, content: r.content }
+                        }
+                    }))
+                });
+
+                response = await continueGeminiConversation(currentHistory, apiKey, systemInst, tools);
                 if (response.error) throw new Error(response.error);
-                
-                // Keep history updated for the next potential tool loop iteration
-                currentHistory.push(toolResultsPart);
-                if (response.text) {
-                    currentHistory.push({ role: 'model', parts: [{ text: response.text }] });
-                }
+
                 toolLoopCount++;
             }
             setMessages(prev => [...prev, { role: 'ai', content: response.text }]);
