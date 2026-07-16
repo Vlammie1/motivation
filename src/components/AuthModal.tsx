@@ -56,145 +56,90 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     };
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 'var(--spacing-md)'
-        }}>
-            <div style={{
-                background: 'var(--color-bg)',
-                border: 'var(--brutalist-border)',
-                boxShadow: '8px 8px 0px var(--color-text)',
-                padding: 'var(--spacing-xl)',
-                maxWidth: '450px',
-                width: '100%',
-                position: 'relative'
-            }}>
-                <button
-                    onClick={onClose}
-                    style={{
-                        position: 'absolute',
-                        top: 'var(--spacing-md)',
-                        right: 'var(--spacing-md)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <X size={24} />
-                </button>
-
-                <h2 style={{
-                    textTransform: 'uppercase',
-                    fontSize: '2rem',
-                    marginBottom: 'var(--spacing-lg)',
-                    borderBottom: '4px solid var(--color-primary)',
-                    display: 'inline-block'
-                }}>
-                    {isLogin ? 'Join the Grind' : 'Start the Legacy'}
-                </h2>
+        <div className="modal-overlay" onClick={onClose}>
+            <div
+                className="modal-panel"
+                style={{ maxWidth: '420px' }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="modal-header">
+                    <h2 style={{ fontSize: 'var(--text-xl)' }}>
+                        {isLogin ? 'Join the Grind' : 'Start the Legacy'}
+                    </h2>
+                    <button className="modal-close" onClick={onClose} aria-label="Sluiten">
+                        <X size={18} />
+                    </button>
+                </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <div>
-                        <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                            Email
-                        </label>
+                        <label className="label" htmlFor="auth-email">Email</label>
                         <input
+                            id="auth-email"
                             type="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: 'var(--spacing-sm)',
-                                border: 'var(--brutalist-border)',
-                                fontFamily: 'var(--font-heading)',
-                                fontSize: '1.1rem',
-                                outline: 'none'
-                            }}
+                            style={{ width: '100%' }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                            Password
-                        </label>
+                        <label className="label" htmlFor="auth-password">Wachtwoord</label>
                         <input
+                            id="auth-password"
                             type="password"
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: 'var(--spacing-sm)',
-                                border: 'var(--brutalist-border)',
-                                fontFamily: 'var(--font-heading)',
-                                fontSize: '1.1rem',
-                                outline: 'none'
-                            }}
+                            style={{ width: '100%' }}
                         />
                     </div>
 
                     {error && (
                         <div style={{
-                            color: 'white',
-                            background: '#ef4444',
+                            color: '#b91c1c',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: 'var(--radius-md)',
                             padding: 'var(--spacing-sm)',
-                            fontWeight: 'bold',
-                            border: '2px solid black'
+                            fontSize: 'var(--text-sm)'
                         }}>
-                            ERROR: {error.toUpperCase()}
+                            {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
+                        className="btn-primary"
                         disabled={loading}
                         style={{
-                            background: 'var(--color-primary)',
-                            color: 'white',
-                            padding: 'var(--spacing-md)',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            fontFamily: 'var(--font-heading)',
-                            textTransform: 'uppercase' as const,
-                            border: 'var(--brutalist-border)',
-                            cursor: 'pointer',
-                            boxShadow: '4px 4px 0px var(--color-text)',
-                            marginTop: 'var(--spacing-sm)',
+                            padding: 'var(--spacing-sm)',
+                            marginTop: 'var(--spacing-2xs)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 'var(--spacing-sm)'
+                            gap: 'var(--spacing-xs)'
                         }}
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : null}
-                        {isLogin ? 'Login Now' : 'Create Account'}
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : null}
+                        {isLogin ? 'Inloggen' : 'Account aanmaken'}
                     </button>
                 </form>
 
-                <div style={{ marginTop: 'var(--spacing-lg)', textAlign: 'center' }}>
+                <div style={{ marginTop: 'var(--spacing-md)', textAlign: 'center' }}>
                     <button
                         onClick={() => setIsLogin(!isLogin)}
                         style={{
                             background: 'none',
                             border: 'none',
-                            textDecoration: 'underline',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase' as const,
-                            fontSize: '0.8rem'
+                            boxShadow: 'none',
+                            color: 'var(--color-text-muted)',
+                            fontSize: 'var(--text-sm)',
+                            padding: 'var(--spacing-2xs)'
                         }}
                     >
-                        {isLogin ? 'Don\'t have an account? Sign up' : 'Already have an account? Login'}
+                        {isLogin ? 'Nog geen account? Meld je aan' : 'Al een account? Log in'}
                     </button>
                 </div>
             </div>

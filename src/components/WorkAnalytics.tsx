@@ -19,6 +19,71 @@ interface WorkAnalyticsProps {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/** Segmented control: één omhullende groep, actief segment krijgt de surface-kleur. */
+const segmentedGroupStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: '2px',
+    padding: '2px',
+    background: 'var(--color-muted)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+};
+
+const segmentStyle = (isActive: boolean): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    padding: 'var(--spacing-2xs) var(--spacing-xs)',
+    border: '1px solid transparent',
+    borderRadius: 'var(--radius-sm)',
+    background: isActive ? 'var(--color-bg)' : 'transparent',
+    color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 600,
+});
+
+const StatCard = ({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) => (
+    <div style={{
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--spacing-md)',
+        background: 'var(--color-surface-2)',
+    }}>
+        <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)' }}>
+            {icon}
+            {label}
+        </div>
+        {children}
+    </div>
+);
+
+const BigValue = ({ value, unit }: { value: string; unit?: string }) => (
+    <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-2xl)', lineHeight: 1.1 }}>
+        {value}
+        {unit && <span className="muted" style={{ fontSize: 'var(--text-sm)', marginLeft: '4px' }}>{unit}</span>}
+    </div>
+);
+
+const MeterRow = ({ caption, value, color }: { caption: string; value: number; color: string }) => (
+    <div style={{ marginTop: 'var(--spacing-sm)' }}>
+        <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 'var(--spacing-2xs)' }}>
+            {caption}
+        </div>
+        <div style={{
+            height: '5px',
+            background: 'var(--color-border)',
+            borderRadius: 'var(--radius-full)',
+            overflow: 'hidden',
+        }}>
+            <div style={{
+                height: '100%',
+                width: `${Math.min(100, Math.max(0, value))}%`,
+                background: color,
+                borderRadius: 'var(--radius-full)',
+            }} />
+        </div>
+    </div>
+);
+
 export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({ 
     workHours, 
     onDayClick,
@@ -155,53 +220,40 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
     }, [workHours, selectedYear]);
 
     return (
-        <section style={{
-            marginTop: 'var(--spacing-xl)',
-            border: 'var(--brutalist-border)',
-            padding: 'var(--spacing-lg)',
-            background: 'var(--color-bg)',
-            boxShadow: 'var(--brutalist-shadow)'
-        }}>
+        <section className="card">
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                    <BarChart3 size={24} color="var(--color-primary)" />
-                    <h2 style={{ textTransform: 'uppercase', margin: 0 }}>Advanced Grind Analytics</h2>
-                </div>
+                <h2 className="card-title" style={{ margin: 0 }}>
+                    <BarChart3 size={18} color="var(--color-primary)" />
+                    Advanced Grind Analytics
+                </h2>
 
                 {/* Controls */}
-                <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        style={{ padding: '6px 12px', border: '3px solid var(--color-text)', fontFamily: 'var(--font-mono)', fontWeight: 'bold', background: 'var(--color-bg)', cursor: 'pointer' }}
+                        aria-label="Jaar"
+                        style={{ fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer' }}
                     >
                         {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
 
-                    <div style={{ display: 'flex', border: '3px solid var(--color-text)', background: 'var(--color-bg)' }}>
+                    <div style={segmentedGroupStyle}>
                         {[7, 14, 28].map(r => (
                             <button
                                 key={r}
                                 onClick={() => { setViewRange(r); setOffset(0); }}
-                                style={{
-                                    padding: '6px 12px',
-                                    border: 'none',
-                                    background: viewRange === r ? 'var(--color-text)' : 'transparent',
-                                    color: viewRange === r ? 'var(--color-bg)' : 'var(--color-text)',
-                                    fontWeight: 'bold',
-                                    cursor: 'pointer',
-                                    textTransform: 'uppercase',
-                                    fontSize: '0.8rem'
-                                }}
+                                aria-pressed={viewRange === r}
+                                style={segmentStyle(viewRange === r)}
                             >
-                                {r / 7}W
+                                {r / 7}w
                             </button>
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', border: '3px solid var(--color-text)', background: 'var(--color-bg)' }}>
-                        <button onClick={() => setOffset(o => o + 1)} style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer' }} title="Previous Range"><ChevronLeft size={20} /></button>
-                        <button onClick={() => setOffset(o => Math.max(0, o - 1))} style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer', borderLeft: '3px solid var(--color-text)' }} disabled={offset === 0} title="Next Range"><ChevronRight size={20} /></button>
+                    <div style={segmentedGroupStyle}>
+                        <button onClick={() => setOffset(o => o + 1)} style={segmentStyle(false)} title="Vorige periode"><ChevronLeft size={16} /></button>
+                        <button onClick={() => setOffset(o => Math.max(0, o - 1))} style={segmentStyle(false)} disabled={offset === 0} title="Volgende periode"><ChevronRight size={16} /></button>
                     </div>
                 </div>
             </div>
@@ -215,20 +267,19 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
             />
 
             {/* Range Indicator */}
-            <div style={{ textAlign: 'center', fontWeight: 'bold', margin: 'var(--spacing-md) 0', textTransform: 'uppercase', fontSize: '1rem', letterSpacing: '1px' }}>
-                {chartData[0].displayDate} - {chartData[chartData.length - 1].displayDate} ({viewRange} DAYS)
+            <div className="muted" style={{ textAlign: 'center', margin: 'var(--spacing-md) 0', fontSize: 'var(--text-sm)' }}>
+                {chartData[0].displayDate} – {chartData[chartData.length - 1].displayDate} ({viewRange} dagen)
             </div>
 
             {/* Bar Chart */}
             <div style={{
                 marginBottom: 'var(--spacing-xl)',
                 overflowX: 'auto',
-                paddingBottom: '50px',
-                paddingTop: '40px',
                 marginTop: 'var(--spacing-md)',
-                background: 'rgba(var(--color-text-rgb), 0.03)',
-                padding: '40px 10px 60px 10px',
-                border: '2px solid rgba(var(--color-text-rgb), 0.1)'
+                background: 'var(--color-surface-2)',
+                padding: 'var(--spacing-2xl) var(--spacing-sm)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)'
             }}>
                 <div style={{
                     minWidth: `${viewRange * 38}px`,
@@ -237,8 +288,8 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                     alignItems: 'flex-end',
                     gap: '4px',
                     padding: '0 20px',
-                    borderLeft: '5px solid var(--color-text)',
-                    borderBottom: '5px solid var(--color-text)',
+                    borderLeft: '1px solid var(--color-border-strong)',
+                    borderBottom: '1px solid var(--color-border-strong)',
                     position: 'relative'
                 }}>
                     {/* Grid Lines */}
@@ -277,7 +328,7 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                                                     day.hours >= 10 ? '#FFD700' : // Legendary (Gold)
                                                         (day.hours > 0 ? 'var(--color-primary)' : 'rgba(128,128,128,0.1)'),
                                 height: `${(day.hours / Math.max(maxHoursInView, 1)) * (chartHeight - 40)}px`,
-                                border: '3px solid var(--color-text)',
+                                border: '1px solid var(--color-border-strong)',
                                 borderBottom: 'none',
                                 position: 'relative',
                                 transition: 'height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
@@ -301,7 +352,7 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                                         color: day.hours >= 10 ? 'black' : 'var(--color-bg)',
                                         padding: '2px 6px',
                                         zIndex: 10,
-                                        boxShadow: '3px 3px 0px rgba(0,0,0,0.3)',
+
                                         borderRadius: '0'
                                     }}>
                                         {day.hours.toFixed(1)}h
@@ -390,7 +441,7 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                                 <span style={{ fontWeight: '900', textTransform: 'uppercase', fontSize: '0.9rem', letterSpacing: '1px' }}>Hours Over Time</span>
                             </div>
                             <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', border: '3px solid var(--color-text)', background: 'var(--color-bg)' }}>
+                                <div style={{ display: 'flex', border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)' }}>
                                     {[{ label: '1W', value: 7 }, { label: '2W', value: 14 }, { label: '1M', value: 30 }].map(({ label, value }) => (
                                         <button
                                             key={value}
@@ -404,9 +455,9 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                                         >{label}</button>
                                     ))}
                                 </div>
-                                <div style={{ display: 'flex', border: '3px solid var(--color-text)', background: 'var(--color-bg)' }}>
+                                <div style={{ display: 'flex', border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)' }}>
                                     <button onClick={() => { setLineOffset(o => o + 1); setHoveredIdx(null); }} style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer' }} title="Previous period"><ChevronLeft size={20} /></button>
-                                    <button onClick={() => { setLineOffset(o => Math.max(0, o - 1)); setHoveredIdx(null); }} style={{ padding: '6px 12px', border: 'none', borderLeft: '3px solid var(--color-text)', background: 'transparent', cursor: 'pointer' }} disabled={lineOffset === 0} title="Next period"><ChevronRight size={20} /></button>
+                                    <button onClick={() => { setLineOffset(o => Math.max(0, o - 1)); setHoveredIdx(null); }} style={{ padding: '6px 12px', border: 'none', borderLeft: '1px solid var(--color-border-strong)', background: 'transparent', cursor: 'pointer' }} disabled={lineOffset === 0} title="Next period"><ChevronRight size={20} /></button>
                                 </div>
                             </div>
                         </div>
@@ -416,7 +467,7 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
                             {lineChartData[0]?.displayDate} – {lineChartData[lineChartData.length - 1]?.displayDate}
                         </div>
 
-                        <div style={{ background: 'rgba(var(--color-text-rgb), 0.02)', border: '2px solid rgba(var(--color-text-rgb), 0.08)', padding: '12px 8px 8px 8px', borderRadius: '0' }}>
+                        <div style={{ background: 'rgba(var(--color-text-rgb), 0.02)', border: '1px solid var(--color-border)', padding: '12px 8px 8px 8px', borderRadius: '0' }}>
                             <svg
                                 viewBox={`0 0 ${SVG_W} ${SVG_H}`}
                                 style={{ width: '100%', height: 'auto', display: 'block', cursor: onDayClick ? 'pointer' : 'crosshair', overflow: 'visible' }}
@@ -516,80 +567,58 @@ export const WorkAnalytics: React.FC<WorkAnalyticsProps> = ({
             {/* Extra Stats Grid */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: 'var(--spacing-lg)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: 'var(--spacing-sm)',
                 marginTop: 'var(--spacing-xl)'
             }}>
-                <div style={{ border: 'var(--brutalist-border)', padding: 'var(--spacing-md)', background: 'var(--color-bg)', boxShadow: '6px 6px 0px var(--color-text)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <Calendar size={20} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>YEARLY PROGRESS ({selectedYear})</span>
-                    </div>
-                    <div style={{ fontSize: '2.5rem', fontFamily: 'var(--font-heading)' }}>{stats.totalHours.toFixed(1)} <small style={{ fontSize: '1rem', opacity: 0.6 }}>HRS</small></div>
-                    <div style={{ marginTop: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '6px' }}>
-                            <span>GRIND LEVEL: {stats.grindPercentage.toFixed(1)}%</span>
-                        </div>
-                        <div style={{ height: '16px', background: 'rgba(0,0,0,0.2)', border: '3px solid var(--color-text)' }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, stats.grindPercentage)}%`, background: 'var(--color-primary)' }} />
-                        </div>
-                    </div>
-                </div>
+                <StatCard icon={<Calendar size={15} />} label={`Jaarvoortgang (${selectedYear})`}>
+                    <BigValue value={stats.totalHours.toFixed(1)} unit="uur" />
+                    <MeterRow
+                        caption={`Grind level: ${stats.grindPercentage.toFixed(1)}%`}
+                        value={stats.grindPercentage}
+                        color="var(--color-primary)"
+                    />
+                </StatCard>
 
-                <div style={{ border: 'var(--brutalist-border)', padding: 'var(--spacing-md)', background: 'var(--color-bg)', boxShadow: '6px 6px 0px var(--color-text)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <TrendingUp size={20} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>PROJECTED YEAR END</span>
-                    </div>
-                    <div style={{ fontSize: '2.5rem', fontFamily: 'var(--font-heading)' }}>{stats.projectedYearTotal.toFixed(0)} <small style={{ fontSize: '1rem', opacity: 0.6 }}>HRS</small></div>
-                    <div style={{ marginTop: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '6px' }}>
-                            <span>EST. YEARLY GRIND: {stats.projectedGrindPercentage.toFixed(1)}%</span>
-                        </div>
-                        <div style={{ height: '16px', background: 'rgba(0,0,0,0.2)', border: '3px solid var(--color-text)' }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, stats.projectedGrindPercentage)}%`, background: '#FFD700' }} />
-                        </div>
-                    </div>
-                </div>
+                <StatCard icon={<TrendingUp size={15} />} label="Verwacht jaareinde">
+                    <BigValue value={stats.projectedYearTotal.toFixed(0)} unit="uur" />
+                    <MeterRow
+                        caption={`Verwachte grind: ${stats.projectedGrindPercentage.toFixed(1)}%`}
+                        value={stats.projectedGrindPercentage}
+                        color="var(--color-secondary)"
+                    />
+                </StatCard>
 
-                <div style={{ border: 'var(--brutalist-border)', padding: 'var(--spacing-md)', background: 'var(--color-bg)', boxShadow: '6px 6px 0px var(--color-text)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <Award size={20} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>MOST EFFICIENT DAY</span>
-                    </div>
-                    <div style={{ fontSize: '2.2rem', fontFamily: 'var(--font-heading)', textTransform: 'uppercase' }}>{stats.bestDay ? stats.bestDay.name : 'N/A'}</div>
-                    <p style={{ fontSize: '0.9rem', margin: '8px 0 0 0', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                        AVERAGE: <span style={{ color: 'var(--color-primary)' }}>{stats.bestDay ? stats.bestDay.avg.toFixed(1) : 0} HRS</span> / SESSION
+                <StatCard icon={<Award size={15} />} label="Meest efficiënte dag">
+                    <BigValue value={stats.bestDay ? stats.bestDay.name : '—'} />
+                    <p className="muted" style={{ fontSize: 'var(--text-sm)', margin: 'var(--spacing-xs) 0 0' }}>
+                        Gemiddeld{' '}
+                        <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                            {stats.bestDay ? stats.bestDay.avg.toFixed(1) : 0} uur
+                        </span>{' '}
+                        per sessie
                     </p>
-                </div>
+                </StatCard>
 
-                <div style={{ border: 'var(--brutalist-border)', padding: 'var(--spacing-md)', background: 'var(--color-bg)', boxShadow: '6px 6px 0px var(--color-text)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <Zap size={20} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>ALL-TIME HIGH</span>
-                    </div>
-                    <div style={{ fontSize: '2.5rem', fontFamily: 'var(--font-heading)' }}>
-                        {stats.allTimeHigh?.hours || 0} <small style={{ fontSize: '1rem', opacity: 0.6 }}>HRS</small>
-                    </div>
-                    <p style={{ fontSize: '0.8rem', margin: '8px 0 0 0', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--color-primary)' }}>
-                        RECORD ON {stats.allTimeHigh ? stats.allTimeHigh.date : 'N/A'}
+                <StatCard icon={<Zap size={15} />} label="All-time high">
+                    <BigValue value={String(stats.allTimeHigh?.hours || 0)} unit="uur" />
+                    <p className="muted" style={{ fontSize: 'var(--text-sm)', margin: 'var(--spacing-xs) 0 0' }}>
+                        Record op {stats.allTimeHigh ? stats.allTimeHigh.date : '—'}
                     </p>
-                </div>
+                </StatCard>
             </div>
 
-            <div style={{
+            <div className="muted" style={{
                 marginTop: 'var(--spacing-xl)',
-                padding: 'var(--spacing-md)',
-                background: 'var(--color-text)',
-                color: 'var(--color-bg)',
+                paddingTop: 'var(--spacing-md)',
+                borderTop: '1px solid var(--color-border)',
                 textAlign: 'center',
-                fontWeight: '900',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
                 textTransform: 'uppercase',
-                fontSize: '1.4rem',
-                letterSpacing: '4px',
-                boxShadow: '8px 8px 0px var(--color-primary)'
+                letterSpacing: '0.14em',
             }}>
-                DATA REVEALS TRUTH. NUMBERS DON'T LIE.
+                Data reveals truth. Numbers don't lie.
             </div>
         </section>
     );

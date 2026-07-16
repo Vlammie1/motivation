@@ -21,25 +21,25 @@ export const TimerBar = ({ projectName, projectColor, intent, elapsedMs, onExpan
         maxWidth: '560px',
         zIndex: 900,
         display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)',
-        padding: 'var(--spacing-sm) var(--spacing-md)',
+        padding: 'var(--spacing-xs) var(--spacing-sm)',
         background: 'var(--color-bg)',
-        border: 'var(--brutalist-border)',
-        boxShadow: '6px 6px 0px var(--color-text)'
+        border: '1px solid var(--color-border-strong)',
+        borderRadius: 'var(--radius-lg)',
     }}>
         <div style={{
-            width: '12px', height: '12px', borderRadius: '2px',
-            background: projectColor, border: '2px solid var(--color-text)', flexShrink: 0
+            width: '10px', height: '10px', borderRadius: 'var(--radius-full)',
+            background: projectColor, flexShrink: 0
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-                fontWeight: 'bold', fontSize: '0.85rem',
+                fontWeight: 600, fontSize: 'var(--text-sm)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
                 {projectName}
             </div>
-            <div style={{
-                fontSize: '0.7rem', opacity: 0.6,
+            <div className="muted" style={{
+                fontSize: 'var(--text-xs)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>
                 {intent}
@@ -47,7 +47,7 @@ export const TimerBar = ({ projectName, projectColor, intent, elapsedMs, onExpan
         </div>
 
         <div style={{
-            fontFamily: 'var(--font-heading)', fontSize: '1.3rem',
+            fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)',
             color: projectColor, flexShrink: 0, fontVariantNumeric: 'tabular-nums'
         }}>
             {formatClock(elapsedMs)}
@@ -57,24 +57,23 @@ export const TimerBar = ({ projectName, projectColor, intent, elapsedMs, onExpan
             onClick={onExpand}
             title="Focusscherm openen"
             style={{
-                display: 'flex', alignItems: 'center', padding: '6px',
-                background: 'var(--color-bg)', color: 'var(--color-text)',
-                border: '2px solid var(--color-text)', cursor: 'pointer', flexShrink: 0
+                display: 'flex', alignItems: 'center', padding: 'var(--spacing-xs)',
+                color: 'var(--color-text-muted)', flexShrink: 0
             }}
         >
-            <Maximize2 size={16} />
+            <Maximize2 size={15} />
         </button>
 
         <button
             onClick={onStop}
             title="Timer stoppen"
+            className="btn-primary"
             style={{
-                display: 'flex', alignItems: 'center', padding: '6px',
-                background: 'var(--color-primary)', color: 'white',
-                border: '2px solid var(--color-text)', cursor: 'pointer', flexShrink: 0
+                display: 'flex', alignItems: 'center', padding: 'var(--spacing-xs)',
+                flexShrink: 0
             }}
         >
-            <Square size={16} fill="white" />
+            <Square size={15} fill="currentColor" />
         </button>
     </div>
 );

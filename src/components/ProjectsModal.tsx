@@ -68,61 +68,31 @@ export const ProjectsModal = ({
     };
 
     return (
-        <div
-            style={{
-                position: 'fixed', inset: 0,
-                background: 'rgba(0,0,0,0.6)',
-                zIndex: 1100,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--spacing-md)'
-            }}
-            onClick={onClose}
-        >
+        <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={onClose}>
             <div
-                style={{
-                    background: 'var(--color-bg)',
-                    border: 'var(--brutalist-border)',
-                    boxShadow: '8px 8px 0px var(--color-text)',
-                    width: '100%',
-                    maxWidth: '480px',
-                    maxHeight: '85vh',
-                    overflowY: 'auto',
-                    position: 'relative'
-                }}
+                className="modal-panel"
+                style={{ maxWidth: '480px', padding: 0 }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
                 <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                     padding: 'var(--spacing-lg)',
-                    borderBottom: 'var(--brutalist-border)',
-                    background: 'var(--color-text)',
-                    color: 'var(--color-bg)'
+                    borderBottom: '1px solid var(--color-border)',
                 }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FolderOpen size={20} />
-                            <h2 style={{
-                                margin: 0,
-                                fontFamily: 'var(--font-heading)',
-                                textTransform: 'uppercase',
-                                fontSize: '1.3rem'
-                            }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                            <FolderOpen size={17} />
+                            <h2 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>
                                 Projecten
                             </h2>
                         </div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px' }}>
+                        <div className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--spacing-2xs)' }}>
                             Gerankt op totale uren
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'transparent', border: 'none', color: 'var(--color-bg)',
-                            cursor: 'pointer', padding: '4px', marginTop: '-4px'
-                        }}
-                    >
-                        <X size={24} />
+                    <button className="modal-close" onClick={onClose} aria-label="Sluiten">
+                        <X size={18} />
                     </button>
                 </div>
 
@@ -135,7 +105,7 @@ export const ProjectsModal = ({
                     ) : projects.length === 0 && !showAddForm ? (
                         <div style={{
                             padding: 'var(--spacing-lg)',
-                            border: '2px dashed rgba(128,128,128,0.3)',
+                            border: '1px dashed var(--color-border-strong)',
                             textAlign: 'center',
                             opacity: 0.6,
                             fontSize: '0.9rem',
@@ -154,23 +124,22 @@ export const ProjectsModal = ({
                                 <div
                                     key={project.id}
                                     style={{
-                                        border: 'var(--brutalist-border)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: 'var(--radius-md)',
                                         padding: 'var(--spacing-sm) var(--spacing-md)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 'var(--spacing-sm)',
                                         cursor: 'pointer',
                                         background: 'var(--color-bg)',
-                                        transition: 'transform 0.1s, box-shadow 0.1s',
+                                        transition: 'background-color var(--transition-fast)',
                                     }}
                                     onClick={() => onSelectProject({ id: project.id, name: project.name, color: project.color })}
                                     onMouseEnter={e => {
-                                        e.currentTarget.style.transform = 'translate(-2px, -2px)';
-                                        e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-text)';
+                                        e.currentTarget.style.background = 'var(--color-surface-2)';
                                     }}
                                     onMouseLeave={e => {
-                                        e.currentTarget.style.transform = 'none';
-                                        e.currentTarget.style.boxShadow = 'none';
+                                        e.currentTarget.style.background = 'var(--color-bg)';
                                     }}
                                 >
                                     {/* Rank */}
@@ -190,7 +159,7 @@ export const ProjectsModal = ({
                                         height: '14px',
                                         borderRadius: '2px',
                                         background: project.color,
-                                        border: '2px solid var(--color-text)',
+                                        border: '1px solid var(--color-border-strong)',
                                         flexShrink: 0
                                     }} />
 
@@ -303,9 +272,9 @@ export const ProjectsModal = ({
                                             height: '28px',
                                             borderRadius: '2px',
                                             background: color,
-                                            border: newColor === color ? '3px solid var(--color-text)' : '2px solid transparent',
+                                            border: newColor === color ? '1px solid var(--color-border-strong)' : '2px solid transparent',
                                             cursor: 'pointer',
-                                            outline: newColor === color ? '2px solid var(--color-primary)' : 'none',
+                                            outline: newColor === color ? '1px solid var(--color-primary)' : 'none',
                                             padding: 0
                                         }}
                                     />
@@ -327,7 +296,7 @@ export const ProjectsModal = ({
                                         textTransform: 'uppercase',
                                         border: 'var(--brutalist-border)',
                                         cursor: 'pointer',
-                                        boxShadow: '3px 3px 0px var(--color-text)',
+
                                         opacity: !newName.trim() ? 0.5 : 1
                                     }}
                                 >
@@ -365,14 +334,12 @@ export const ProjectsModal = ({
                                 textTransform: 'uppercase',
                                 border: 'var(--brutalist-border)',
                                 cursor: 'pointer',
-                                boxShadow: '3px 3px 0px var(--color-text)',
+
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '8px'
                             }}
-                            onMouseDown={e => e.currentTarget.style.boxShadow = 'none'}
-                            onMouseUp={e => e.currentTarget.style.boxShadow = '3px 3px 0px var(--color-text)'}
                         >
                             <Plus size={18} />
                             Nieuw Project

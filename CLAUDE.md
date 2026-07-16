@@ -35,7 +35,16 @@ npm run preview   # Preview production build
 
 **Theming:** 4 themes (light, dark, hazard, cyber) via CSS variables in `src/styles/design-tokens.css`. Theme state lives in `ThemeContext.tsx` and is persisted to localStorage.
 
-**Design system:** Brutalist — 4px borders, 8px shadow offsets, Impact/Anton headings. Max-width 800px container.
+**Design system:** Clean/modern with Impact/Anton headings and the original orange/yellow/blue palette. Max-width 900px container.
+
+Everything comes from tokens in `src/styles/design-tokens.css` — never hardcode px values for these:
+- **No drop shadows.** Depth comes from 1px borders (`--color-border`, `--color-border-strong`) and surface colours. The `--shadow-*` tokens all resolve to `none`; only `--shadow-ring` (the focus indicator) paints. Don't reintroduce `box-shadow` for elevation.
+- **Surfaces:** `--color-canvas` is the page, `--color-bg` is a card on it, `--color-surface-2` is a nested/inset panel. Components set `background: var(--color-bg)`, so `--color-bg` must never equal the canvas.
+- **Never** use `background: var(--color-text)` — it inverts per theme and produces white-on-white. Use `--color-surface-2` for active/selected states.
+- **Spacing** is a 4px scale (`--spacing-2xs` … `--spacing-2xl`); **radius** is `--radius-sm/md/lg/full`; **type** is `--text-xs` … `--text-3xl`.
+- Shared primitives live in `src/index.css`: `.card`, `.card-title`, `.label`, `.muted`, `.btn-primary`, `.stack`, `.modal-overlay`, `.modal-panel`, `.modal-header`, `.modal-close`.
+- Form rows: give every field a `.label` (use an `aria-hidden` spacer label above a button) so inputs and buttons share one baseline.
+- `--brutalist-border` / `--brutalist-shadow` are legacy aliases kept only so old call sites inherit the new look; prefer the real tokens in new code.
 
 ## Environment
 

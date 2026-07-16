@@ -1,38 +1,64 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Archive, ArchiveRestore, Check, Lock, Play, Plus, Trash2, X, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Archive, ArchiveRestore, Check, ListChecks, Lock, Pencil, Play, Plus, Trash2, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../context/ProjectsContext';
 import { useTimer } from '../context/TimerContext';
 import type { ProjectStats } from '../hooks/useSupabaseProjects';
 import { PROJECT_COLORS, DEFAULT_PROJECT_COLOR } from '../lib/projectColors';
+import { STATUS_META, TASK_STATUSES } from '../lib/tasks';
 import { formatHours } from '../lib/time';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { HypeButton } from '../components/HypeButton';
 
 const sectionStyle: React.CSSProperties = {
-    border: 'var(--brutalist-border)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-lg)',
     padding: 'var(--spacing-lg)',
     background: 'var(--color-bg)',
-    boxShadow: 'var(--brutalist-shadow)'
 };
 
 const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: 'var(--spacing-sm)',
-    border: 'var(--brutalist-border)',
-    fontSize: '0.95rem',
-    fontFamily: 'var(--font-heading)',
-    outline: 'none',
-    background: 'var(--color-bg)',
-    color: 'var(--color-text)',
     boxSizing: 'border-box'
 };
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
     <div>
-        <div style={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', fontWeight: 'bold' }}>{label}</div>
-        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem' }}>{value}</div>
+        <div className="label" style={{ marginBottom: 0 }}>{label}</div>
+        <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-base)' }}>{value}</div>
     </div>
+);
+
+/** Hoeveel taken er per status openstaan, met de link naar het takenbord. */
+const TaskSummary = ({ project }: { project: ProjectStats }) => (
+    <Link
+        to={`/projects/${project.id}`}
+        title="Taken beheren"
+        style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flexWrap: 'wrap',
+            borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-sm)',
+            color: 'var(--color-text)', textDecoration: 'none', fontSize: 'var(--text-xs)'
+        }}
+    >
+        <ListChecks size={14} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+        {project.tasks.total === 0 ? (
+            <span className="muted">Nog geen taken</span>
+        ) : (
+            <>
+                {TASK_STATUSES.map(s => (
+                    <span key={s} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <span style={{
+                            width: '7px', height: '7px', borderRadius: 'var(--radius-full)',
+                            background: STATUS_META[s].color
+                        }} />
+                        <strong>{project.tasks[s]}</strong>
+                    </span>
+                ))}
+                <span className="muted" style={{ marginLeft: 'auto' }}>{project.tasks.open} open</span>
+            </>
+        )}
+    </Link>
 );
 
 const ProjectsPage = () => {
@@ -136,21 +162,23 @@ const ProjectsPage = () => {
 
     return (
         <div>
-            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <header style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-xl)',
+                flexWrap: 'wrap'
+            }}>
+                <div>
+                    <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--spacing-2xs)' }}>
+                        Projecten
+                    </h1>
+                    <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+                        {stats.length} projecten · {formatHours(totalHours)} totaal
+                    </p>
+                </div>
                 <ThemeSwitcher />
-            </div>
-
-            <header style={{ marginBottom: 'var(--spacing-xl)' }}>
-                <h1 style={{
-                    fontSize: '3rem', textTransform: 'uppercase', fontFamily: 'var(--font-heading)',
-                    borderBottom: '8px solid var(--color-primary)', display: 'inline-block',
-                    marginBottom: 'var(--spacing-md)'
-                }}>
-                    Projecten
-                </h1>
-                <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                    {stats.length} PROJECTEN · {formatHours(totalHours)} TOTAAL
-                </p>
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
@@ -159,18 +187,18 @@ const ProjectsPage = () => {
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         gap: 'var(--spacing-md)', flexWrap: 'wrap', marginBottom: 'var(--spacing-lg)'
                     }}>
-                        <h2 style={{ textTransform: 'uppercase', margin: 0 }}>Overzicht</h2>
-                        <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
+                        <h2 className="card-title" style={{ margin: 0 }}>Overzicht</h2>
+                        <div style={{ display: 'flex', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
                             {archivedCount > 0 && (
                                 <button
                                     onClick={() => setShowArchived(v => !v)}
+                                    aria-pressed={showArchived}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: '6px',
-                                        padding: 'var(--spacing-sm) var(--spacing-md)',
-                                        background: showArchived ? 'var(--color-text)' : 'var(--color-bg)',
-                                        color: showArchived ? 'var(--color-bg)' : 'var(--color-text)',
-                                        border: 'var(--brutalist-border)', cursor: 'pointer',
-                                        fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '0.8rem'
+                                        display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)',
+                                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                                        background: showArchived ? 'var(--color-surface-2)' : 'var(--color-bg)',
+                                        borderColor: showArchived ? 'var(--color-text-muted)' : 'var(--color-border-strong)',
+                                        fontSize: 'var(--text-sm)', fontWeight: 600
                                     }}
                                 >
                                     <Archive size={14} />
@@ -179,13 +207,11 @@ const ProjectsPage = () => {
                             )}
                             <button
                                 onClick={() => setShowAdd(v => !v)}
+                                className="btn-primary"
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: '6px',
-                                    padding: 'var(--spacing-sm) var(--spacing-md)',
-                                    background: 'var(--color-primary)', color: 'white',
-                                    border: 'var(--brutalist-border)', boxShadow: '4px 4px 0px var(--color-text)',
-                                    cursor: 'pointer', fontFamily: 'var(--font-heading)',
-                                    textTransform: 'uppercase', fontSize: '0.8rem'
+                                    display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)',
+                                    padding: 'var(--spacing-xs) var(--spacing-sm)',
+                                    fontSize: 'var(--text-sm)'
                                 }}
                             >
                                 <Plus size={14} />
@@ -196,7 +222,7 @@ const ProjectsPage = () => {
 
                     {showAdd && (
                         <div style={{
-                            border: '2px dashed rgba(128,128,128,0.5)', padding: 'var(--spacing-md)',
+                            border: '1px dashed var(--color-border-strong)', padding: 'var(--spacing-md)',
                             marginBottom: 'var(--spacing-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)'
                         }}>
                             <input
@@ -218,8 +244,8 @@ const ProjectsPage = () => {
                                         onClick={() => setNewColor(color)}
                                         style={{
                                             width: '28px', height: '28px', borderRadius: '2px', background: color,
-                                            border: newColor === color ? '3px solid var(--color-text)' : '2px solid transparent',
-                                            outline: newColor === color ? '2px solid var(--color-primary)' : 'none',
+                                            border: newColor === color ? '1px solid var(--color-border-strong)' : '2px solid transparent',
+                                            outline: newColor === color ? '1px solid var(--color-primary)' : 'none',
                                             cursor: 'pointer', padding: 0
                                         }}
                                     />
@@ -256,7 +282,7 @@ const ProjectsPage = () => {
                         <div style={{ opacity: 0.5, fontWeight: 'bold', textTransform: 'uppercase' }}>Laden...</div>
                     ) : visible.length === 0 ? (
                         <div style={{
-                            padding: 'var(--spacing-xl)', border: '2px dashed rgba(128,128,128,0.3)',
+                            padding: 'var(--spacing-xl)', border: '1px dashed var(--color-border-strong)',
                             textAlign: 'center', opacity: 0.6, fontWeight: 'bold', textTransform: 'uppercase'
                         }}>
                             Nog geen projecten. Maak er één aan om te beginnen.
@@ -299,7 +325,7 @@ const ProjectsPage = () => {
                                                             onClick={() => setEditColor(color)}
                                                             style={{
                                                                 width: '22px', height: '22px', borderRadius: '2px', background: color,
-                                                                border: editColor === color ? '3px solid var(--color-text)' : '2px solid transparent',
+                                                                border: editColor === color ? '1px solid var(--color-border-strong)' : '2px solid transparent',
                                                                 cursor: 'pointer', padding: 0
                                                             }}
                                                         />
@@ -311,7 +337,7 @@ const ProjectsPage = () => {
                                                         style={{
                                                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                                             background: 'var(--color-primary)', color: 'white', padding: '6px',
-                                                            border: '2px solid var(--color-text)', cursor: 'pointer',
+                                                            border: '1px solid var(--color-border-strong)', cursor: 'pointer',
                                                             fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '0.75rem'
                                                         }}
                                                     >
@@ -322,7 +348,7 @@ const ProjectsPage = () => {
                                                         style={{
                                                             display: 'flex', alignItems: 'center', padding: '6px 10px',
                                                             background: 'var(--color-bg)', color: 'var(--color-text)',
-                                                            border: '2px solid var(--color-text)', cursor: 'pointer'
+                                                            border: '1px solid var(--color-border-strong)', cursor: 'pointer'
                                                         }}
                                                     >
                                                         <X size={14} />
@@ -332,26 +358,37 @@ const ProjectsPage = () => {
                                         ) : (
                                             <>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                                                    <button
-                                                        onClick={() => startEdit(project)}
-                                                        title="Naam en kleur aanpassen"
+                                                    <Link
+                                                        to={`/projects/${project.id}`}
+                                                        title="Taken van dit project beheren"
                                                         style={{
-                                                            flex: 1, textAlign: 'left', background: 'transparent', border: 'none',
-                                                            padding: 0, cursor: 'pointer', color: 'var(--color-text)',
+                                                            flex: 1, textAlign: 'left', color: 'var(--color-text)',
                                                             fontFamily: 'var(--font-heading)', fontSize: '1.2rem',
-                                                            textTransform: 'uppercase', lineHeight: 1.1, wordBreak: 'break-word'
+                                                            textTransform: 'uppercase', lineHeight: 1.1, wordBreak: 'break-word',
+                                                            textDecoration: 'none'
                                                         }}
                                                     >
                                                         {project.name}
-                                                    </button>
+                                                    </Link>
                                                     {project.archived && (
                                                         <span style={{
                                                             fontSize: '0.6rem', fontWeight: 'bold', textTransform: 'uppercase',
-                                                            border: '2px solid var(--color-text)', padding: '1px 4px', flexShrink: 0
+                                                            border: '1px solid var(--color-border-strong)', padding: '1px 4px', flexShrink: 0
                                                         }}>
                                                             Archief
                                                         </span>
                                                     )}
+                                                    <button
+                                                        onClick={() => startEdit(project)}
+                                                        title="Naam en kleur aanpassen"
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0,
+                                                            background: 'transparent', border: '1px solid transparent',
+                                                            color: 'var(--color-text-muted)', cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
                                                 </div>
 
                                                 <div style={{
@@ -364,7 +401,7 @@ const ProjectsPage = () => {
                                                 <div style={{
                                                     display: 'grid', gridTemplateColumns: '1fr 1fr',
                                                     gap: 'var(--spacing-sm)',
-                                                    borderTop: '2px solid rgba(128,128,128,0.25)', paddingTop: 'var(--spacing-sm)'
+                                                    borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-sm)'
                                                 }}>
                                                     <Stat label="Sessies" value={String(project.sessions)} />
                                                     <Stat label="Gem. sessie" value={formatHours(project.avg_session)} />
@@ -373,17 +410,23 @@ const ProjectsPage = () => {
                                                     <Stat label="Laatst gewerkt" value={project.last_worked || '—'} />
                                                 </div>
 
-                                                <div style={{ display: 'flex', gap: '6px', marginTop: 'auto', paddingTop: 'var(--spacing-sm)' }}>
+                                                <TaskSummary project={project} />
+
+                                                <div style={{ display: 'flex', gap: 'var(--spacing-2xs)', marginTop: 'auto', paddingTop: 'var(--spacing-sm)' }}>
                                                     <button
                                                         onClick={() => openStart(project.id)}
                                                         disabled={!!timer}
                                                         title={timer ? 'Er loopt al een timer' : 'Start een timer op dit project'}
                                                         style={{
-                                                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                                            background: isRunning ? 'var(--color-text)' : project.color, color: 'white',
-                                                            padding: '8px', border: '2px solid var(--color-text)',
-                                                            cursor: timer ? 'not-allowed' : 'pointer', opacity: timer ? 0.4 : 1,
-                                                            fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '0.8rem'
+                                                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            gap: 'var(--spacing-2xs)',
+                                                            // Loopt de timer al, dan blijft dit een leesbare, uitgeschakelde knop
+                                                            // in plaats van witte tekst op een witte vlakte.
+                                                            background: isRunning ? 'var(--color-surface-2)' : project.color,
+                                                            color: isRunning ? 'var(--color-text)' : 'var(--color-on-primary)',
+                                                            border: isRunning ? '1px solid var(--color-border-strong)' : '1px solid transparent',
+                                                            padding: 'var(--spacing-xs)',
+                                                            fontSize: 'var(--text-sm)', fontWeight: 600
                                                         }}
                                                     >
                                                         <Play size={14} />
@@ -393,9 +436,8 @@ const ProjectsPage = () => {
                                                         onClick={() => toggleArchived(project)}
                                                         title={project.archived ? 'Terughalen uit archief' : 'Archiveren (uren blijven bewaard)'}
                                                         style={{
-                                                            display: 'flex', alignItems: 'center', padding: '8px',
-                                                            background: 'var(--color-bg)', color: 'var(--color-text)',
-                                                            border: '2px solid var(--color-text)', cursor: 'pointer'
+                                                            display: 'flex', alignItems: 'center', padding: 'var(--spacing-xs)',
+                                                            color: 'var(--color-text-muted)',
                                                         }}
                                                     >
                                                         {project.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
@@ -404,9 +446,8 @@ const ProjectsPage = () => {
                                                         onClick={() => handleDelete(project)}
                                                         title="Verwijderen"
                                                         style={{
-                                                            display: 'flex', alignItems: 'center', padding: '8px',
-                                                            background: 'transparent', color: 'var(--color-text)',
-                                                            border: '2px solid rgba(128,128,128,0.4)', cursor: 'pointer', opacity: 0.6
+                                                            display: 'flex', alignItems: 'center', padding: 'var(--spacing-xs)',
+                                                            color: 'var(--color-text-muted)',
                                                         }}
                                                     >
                                                         <Trash2 size={14} />

@@ -10,53 +10,64 @@ export const Navigation = () => {
     const { user, signOut } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-    const navItemStyle = (path: string | null) => ({
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--spacing-sm)',
-        padding: 'var(--spacing-sm) var(--spacing-md)',
-        cursor: 'pointer',
-        border: 'var(--brutalist-border)',
-        background: path && location.pathname === path ? 'var(--color-primary)' : 'var(--color-bg)',
-        color: path && location.pathname === path ? 'white' : 'var(--color-text)',
-        fontFamily: 'var(--font-heading)',
-        textTransform: 'uppercase' as const,
-        fontWeight: 'bold',
-        boxShadow: path && location.pathname === path ? 'none' : '4px 4px 0px var(--color-text)',
-        transform: path && location.pathname === path ? 'translate(2px, 2px)' : 'none',
-        transition: 'all 0.1s ease',
-    });
+    const navItemStyle = (path: string | null) => {
+        const isActive = !!path && location.pathname === path;
+        return {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-xs)',
+            padding: 'var(--spacing-xs) var(--spacing-sm)',
+            cursor: 'pointer',
+            border: '1px solid transparent',
+            borderRadius: 'var(--radius-md)',
+            background: isActive ? 'var(--color-bg)' : 'transparent',
+            color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+            boxShadow: isActive ? 'var(--shadow-xs)' : 'none',
+        };
+    };
 
     return (
         <>
-            <nav style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+            <nav style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-2xs)',
+                marginBottom: 'var(--spacing-xl)',
+                padding: 'var(--spacing-2xs)',
+                background: 'var(--color-muted)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-lg)',
+                flexWrap: 'wrap'
+            }}>
                 <button
                     onClick={() => navigate('/')}
                     style={navItemStyle('/')}
                 >
-                    <ClipboardList size={18} />
+                    <ClipboardList size={16} />
                     Tracker
                 </button>
                 <button
                     onClick={() => navigate('/projects')}
                     style={navItemStyle('/projects')}
                 >
-                    <FolderKanban size={18} />
+                    <FolderKanban size={16} />
                     Projecten
                 </button>
 
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--spacing-md)' }}>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)' }}>
                     {user ? (
                         <>
-                            <div style={{ ...navItemStyle(null), cursor: 'default', background: 'var(--color-bg)' }}>
-                                <User size={18} />
-                                <span style={{ fontSize: '0.8rem' }}>{user.email}</span>
+                            <div style={{ ...navItemStyle(null), cursor: 'default' }}>
+                                <User size={16} />
+                                <span style={{ fontSize: 'var(--text-xs)' }}>{user.email}</span>
                             </div>
                             <button
                                 onClick={signOut}
                                 style={navItemStyle(null)}
                             >
-                                <LogOut size={18} />
+                                <LogOut size={16} />
                                 Logout
                             </button>
                         </>
@@ -65,7 +76,7 @@ export const Navigation = () => {
                             onClick={() => setIsAuthModalOpen(true)}
                             style={navItemStyle(null)}
                         >
-                            <LogIn size={18} />
+                            <LogIn size={16} />
                             Login / Signup
                         </button>
                     )}

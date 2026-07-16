@@ -113,11 +113,13 @@ export const FocusMode: React.FC<FocusModeProps> = ({
     };
 
     const cornerButton: React.CSSProperties = {
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: 'var(--spacing-sm) var(--spacing-md)',
-        background: 'var(--color-bg)', color: 'var(--color-text)',
-        border: 'var(--brutalist-border)', cursor: 'pointer',
-        fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '0.8rem'
+        display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)',
+        padding: 'var(--spacing-xs) var(--spacing-sm)',
+        background: 'var(--color-surface-2)', color: 'var(--color-text-muted)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        cursor: 'pointer',
+        fontSize: 'var(--text-sm)', fontWeight: 600
     };
 
     return (
@@ -130,7 +132,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
         }}>
             <div style={{
                 position: 'absolute', inset: 0,
-                background: 'radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%)',
+                background: `radial-gradient(circle at 50% 45%, ${projectColor}14 0%, transparent 55%)`,
                 pointerEvents: 'none', zIndex: 1
             }} />
 
@@ -139,34 +141,34 @@ export const FocusMode: React.FC<FocusModeProps> = ({
             <div style={{ zIndex: 2, maxWidth: '100%' }}>
                 {/* Waar je aan werkt — vervangt het oude vaste doel. */}
                 <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '12px',
-                    padding: 'var(--spacing-sm) var(--spacing-lg)',
-                    border: `4px solid ${projectColor}`,
+                    display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-xs)',
+                    padding: 'var(--spacing-2xs) var(--spacing-sm)',
+                    background: `${projectColor}14`,
+                    borderRadius: 'var(--radius-full)',
                     marginBottom: 'var(--spacing-md)'
                 }}>
-                    <div style={{ width: '14px', height: '14px', borderRadius: '2px', background: projectColor, flexShrink: 0 }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: 'var(--radius-full)', background: projectColor, flexShrink: 0 }} />
                     <span style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: 'clamp(1.2rem, 3vw, 2.2rem)',
-                        textTransform: 'uppercase', letterSpacing: '-0.5px', lineHeight: 1
+                        fontSize: 'var(--text-sm)', fontWeight: 600,
+                        color: projectColor, lineHeight: 1
                     }}>
                         {projectName}
                     </span>
                 </div>
 
-                <div style={{
-                    fontSize: 'clamp(0.9rem, 2vw, 1.3rem)', fontWeight: 'bold',
-                    opacity: 0.75, marginBottom: 'var(--spacing-lg)',
-                    maxWidth: '700px', marginLeft: 'auto', marginRight: 'auto'
+                <div className="muted" style={{
+                    fontSize: 'clamp(0.9rem, 2vw, 1.2rem)',
+                    marginBottom: 'var(--spacing-xl)',
+                    maxWidth: '640px', marginLeft: 'auto', marginRight: 'auto'
                 }}>
                     {intent}
                 </div>
 
                 <div style={{
                     fontFamily: 'var(--font-heading)',
-                    fontSize: 'clamp(3rem, 12vw, 9rem)',
+                    fontSize: 'clamp(3rem, 12vw, 8.5rem)',
                     lineHeight: 0.9, color: projectColor,
-                    letterSpacing: '-2px', marginBottom: 'var(--spacing-lg)',
+                    letterSpacing: '-0.02em', marginBottom: 'var(--spacing-xl)',
                     fontVariantNumeric: 'tabular-nums'
                 }}>
                     {formatClock(elapsedMs)}
@@ -174,19 +176,17 @@ export const FocusMode: React.FC<FocusModeProps> = ({
 
                 <div style={{
                     fontFamily: 'var(--font-heading)',
-                    fontSize: 'clamp(1.5rem, 5vw, 3.5rem)',
-                    lineHeight: 0.95, textTransform: 'uppercase',
-                    marginBottom: 'var(--spacing-md)',
-                    transition: 'all 0.5s ease-in-out'
+                    fontSize: 'clamp(1.3rem, 4vw, 2.75rem)',
+                    lineHeight: 1, textTransform: 'uppercase',
+                    marginBottom: 'var(--spacing-xs)',
                 }}>
                     {HYPE_WORDS[hypeIndex]}
                 </div>
 
-                <div style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'clamp(0.7rem, 1.5vw, 1.1rem)',
-                    fontWeight: 'bold', opacity: 0.7,
-                    textTransform: 'uppercase', letterSpacing: '3px', height: '1.6rem'
+                <div className="muted" style={{
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase', letterSpacing: '0.18em', height: '1.6rem'
                 }}>
                     {EMPOWERMENT_WORDS[empowerIndex]}
                 </div>
@@ -242,7 +242,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
                         display: 'flex', alignItems: 'center', gap: '10px',
                         padding: 'var(--spacing-md) var(--spacing-lg)',
                         background: 'var(--color-bg)', color: 'var(--color-text)',
-                        border: 'var(--brutalist-border)', boxShadow: 'var(--brutalist-shadow)',
+                        border: 'var(--brutalist-border)',
                         cursor: 'pointer', fontFamily: 'var(--font-heading)',
                         textTransform: 'uppercase', fontSize: '1rem'
                     }}
@@ -256,7 +256,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
                         display: 'flex', alignItems: 'center', gap: '10px',
                         padding: 'var(--spacing-md) var(--spacing-xl)',
                         backgroundColor: 'var(--color-primary)', color: 'white',
-                        border: 'var(--brutalist-border)', boxShadow: 'var(--brutalist-shadow)',
+                        border: 'var(--brutalist-border)',
                         cursor: 'pointer', fontFamily: 'var(--font-heading)',
                         textTransform: 'uppercase', fontSize: '1.2rem'
                     }}

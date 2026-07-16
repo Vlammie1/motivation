@@ -9,6 +9,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProjectsProvider } from './context/ProjectsContext'
 import { TimerProvider } from './context/TimerContext'
+import { WorkDataProvider } from './context/WorkDataContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -16,9 +17,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <AuthProvider>
           <ProjectsProvider>
-            <TimerProvider>
-              <App />
-            </TimerProvider>
+            <WorkDataProvider>
+              <TimerProvider>
+                <App />
+              </TimerProvider>
+            </WorkDataProvider>
           </ProjectsProvider>
         </AuthProvider>
       </ThemeProvider>

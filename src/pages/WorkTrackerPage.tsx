@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useMemo } from 'react';
 import { WorkHeatmap } from '../components/WorkHeatmap';
 import { WorkStats } from '../components/WorkStats';
 import { WorkLogForm } from '../components/WorkLogForm';
 import { DayDetailModal } from '../components/DayDetailModal';
 import { TrendingUp, Loader2, Lock, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useSupabaseWorkLogs } from '../hooks/useSupabaseWorkLogs';
+import { useWorkData } from '../context/WorkDataContext';
 import { useProjects } from '../context/ProjectsContext';
 import { useTimer } from '../context/TimerContext';
 import { GrindEfficiency } from '../components/GrindEfficiency';
@@ -14,62 +13,33 @@ import { WorkAnalytics } from '../components/WorkAnalytics';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { DailyHabitsForm } from '../components/DailyHabitsForm';
 import { OtherActivitiesForm } from '../components/OtherActivitiesForm';
-import { useSupabaseDailyHabits } from '../hooks/useSupabaseDailyHabits';
-import { useSupabaseOtherActivities } from '../hooks/useSupabaseOtherActivities';
-import { subDays, format } from 'date-fns';
-import type { WorkLogEntry } from '../hooks/useSupabaseWorkLogs';
-import type { OtherActivity } from '../types/work';
 import { AIAssistant } from '../components/AIAssistant';
 
 const WorkTrackerPage = () => {
     const { user, loading: authLoading } = useAuth();
-    const { workLogs, loading: logsLoading, addWorkLogEntry, fetchWorkLogEntries, fetchWorkLogEntriesInRange, deleteWorkLogEntry, refresh: refreshWorkLogs } = useSupabaseWorkLogs();
+    const {
+        workLogs, recentEntries, loading: logsLoading,
+        addWorkLogEntry, fetchWorkLogEntries, editWorkLogEntry, deleteWorkLogEntry, refreshWorkLogs,
+        dailyHabits, upsertDailyHabit,
+        otherActivities, otherActivitiesList, addOtherActivity, deleteOtherActivity
+    } = useWorkData();
     const { projects, addProject, deleteProject, getProjectsWithHours } = useProjects();
     const { openStart, timer, version } = useTimer();
-    const { dailyHabits, upsertDailyHabit } = useSupabaseDailyHabits();
-    const { activities: otherActivities, addOtherActivity, deleteOtherActivity } = useSupabaseOtherActivities();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [modalDate, setModalDate] = useState<string | null>(null);
-    const [allEntries, setAllEntries] = useState<WorkLogEntry[]>([]);
-    const [allOtherActivities, setAllOtherActivities] = useState<OtherActivity[]>([]);
-
-    // Fetch entries for the last 30 days for the activity chart
-    useEffect(() => {
-        const fetchRange = async () => {
-            const end = new Date();
-            const start = subDays(end, 30);
-            
-            // Work Logs
-            const entries = await fetchWorkLogEntriesInRange(
-                format(start, 'yyyy-MM-dd'),
-                format(end, 'yyyy-MM-dd')
-            );
-            setAllEntries(entries);
-
-            // Other Activities
-            const { data, error } = await supabase
-                .from('other_activities')
-                .select('*')
-                .gte('work_date', format(start, 'yyyy-MM-dd'))
-                .lte('work_date', format(end, 'yyyy-MM-dd'));
-            
-            if (!error && data) {
-                setAllOtherActivities(data);
-            }
-        };
-        if (user) fetchRange();
-    }, [user, workLogs, otherActivities]); // Refetch when logs or activities change
 
     // De timer schrijft sessies buiten deze pagina om weg; na elke opgeslagen
     // sessie moeten de totalen hier opnieuw opgehaald worden.
     useEffect(() => {
         if (version > 0) refreshWorkLogs();
-    }, [version]);
+    }, [version, refreshWorkLogs]);
 
-    const currentYearPrefix = new Date().getFullYear().toString();
-    const yearHours = Object.entries(workLogs)
-        .filter(([date]) => date.startsWith(currentYearPrefix))
-        .reduce((acc, [_, hours]) => acc + hours, 0);
+    const yearHours = useMemo(() => {
+        const prefix = new Date().getFullYear().toString();
+        return Object.entries(workLogs)
+            .filter(([date]) => date.startsWith(prefix))
+            .reduce((acc, [, hours]) => acc + hours, 0);
+    }, [workLogs]);
 
     // Count entries for today (approximate via sessions tracked in workLogs — we show live count from modal)
     const todaySessions = 0; // updated after fetch; workLogs only stores total
@@ -88,85 +58,67 @@ const WorkTrackerPage = () => {
 
     if (!user) {
         return (
-            <div style={{
-                border: 'var(--brutalist-border)',
-                padding: 'var(--spacing-xl)',
+            <div className="card" style={{
+                padding: 'var(--spacing-2xl)',
                 textAlign: 'center',
-                background: 'var(--color-bg)',
-                boxShadow: '8px 8px 0px var(--color-text)',
                 marginTop: 'var(--spacing-xl)'
             }}>
-                <Lock size={48} style={{ marginBottom: 'var(--spacing-md)' }} />
-                <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)', fontSize: '2rem' }}>Access Denied</h2>
-                <p style={{ fontWeight: 'bold' }}>LOG IN TO TRACK YOUR JOURNEY.</p>
+                <Lock size={32} style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-text-muted)' }} />
+                <h2 style={{ marginBottom: 'var(--spacing-xs)', fontSize: 'var(--text-2xl)' }}>Access Denied</h2>
+                <p className="muted" style={{ margin: 0 }}>Log in om je voortgang bij te houden.</p>
             </div>
         );
     }
 
     return (
         <div className="work-tracker-page">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-                <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-                    <ThemeSwitcher />
+            <header style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-xl)',
+                flexWrap: 'wrap'
+            }}>
+                <div>
+                    <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--spacing-2xs)' }}>
+                        Work Intensity
+                    </h1>
+                    <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+                        No excuses. Just hours.
+                    </p>
                 </div>
-                <button
-                    onClick={() => openStart()}
-                    disabled={!!timer}
-                    title={timer ? 'Er loopt al een timer' : 'Start een timer'}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        background: 'var(--color-primary)', color: 'white',
-                        padding: 'var(--spacing-md) var(--spacing-xl)',
-                        fontFamily: 'var(--font-heading)', textTransform: 'uppercase',
-                        border: 'var(--brutalist-border)', boxShadow: 'var(--brutalist-shadow)',
-                        cursor: timer ? 'not-allowed' : 'crosshair',
-                        opacity: timer ? 0.4 : 1,
-                        fontSize: '1.2rem'
-                    }}
-                >
-                    <Play size={20} />
-                    {timer ? 'Timer loopt' : 'Start timer'}
-                </button>
-            </div>
-            <header style={{ marginBottom: 'var(--spacing-xl)' }}>
-                <h1 style={{
-                    fontSize: '3rem',
-                    textTransform: 'uppercase',
-                    fontFamily: 'var(--font-heading)',
-                    borderBottom: '8px solid var(--color-primary)',
-                    display: 'inline-block',
-                    marginBottom: 'var(--spacing-md)'
-                }}>
-                    Work Intensity
-                </h1>
-                <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                    NO EXCUSES. JUST HOURS.
-                </p>
+                <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
+                    <ThemeSwitcher />
+                    <button
+                        className="btn-primary"
+                        onClick={() => openStart()}
+                        disabled={!!timer}
+                        title={timer ? 'Er loopt al een timer' : 'Start een timer'}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)',
+                            padding: 'var(--spacing-xs) var(--spacing-md)'
+                        }}
+                    >
+                        <Play size={16} />
+                        {timer ? 'Timer loopt' : 'Start timer'}
+                    </button>
+                </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--spacing-xl)' }}>
+            <div className="stack">
                 {/* Statistics Section */}
-                <section style={{
-                    border: 'var(--brutalist-border)',
-                    padding: 'var(--spacing-lg)',
-                    background: 'var(--color-bg)',
-                    boxShadow: 'var(--brutalist-shadow)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
-                        <TrendingUp size={24} color="var(--color-primary)" />
-                        <h2 style={{ textTransform: 'uppercase', margin: 0 }}>Performance Stats</h2>
-                    </div>
+                <section className="card">
+                    <h2 className="card-title">
+                        <TrendingUp size={18} color="var(--color-primary)" />
+                        Performance Stats
+                    </h2>
                     <WorkStats workHours={workLogs} />
                 </section>
 
                 {/* Heatmap Section */}
-                <section style={{
-                    border: 'var(--brutalist-border)',
-                    padding: 'var(--spacing-lg)',
-                    background: 'var(--color-bg)',
-                    boxShadow: 'var(--brutalist-shadow)'
-                }}>
-                    <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-lg)' }}>Annual Grind</h2>
+                <section className="card">
+                    <h2 className="card-title">Annual Grind</h2>
                     <WorkHeatmap
                         workHours={workLogs}
                         onSelectDate={(date: string) => {
@@ -179,13 +131,8 @@ const WorkTrackerPage = () => {
                 </section>
 
                 {/* Log Form Section */}
-                <section style={{
-                    border: 'var(--brutalist-border)',
-                    padding: 'var(--spacing-lg)',
-                    background: 'var(--color-bg)',
-                    boxShadow: 'var(--brutalist-shadow)'
-                }}>
-                    <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Voeg Sessie Toe</h2>
+                <section className="card">
+                    <h2 className="card-title">Voeg Sessie Toe</h2>
                     <WorkLogForm
                         date={selectedDate}
                         currentHours={workLogs[selectedDate] || 0}
@@ -196,8 +143,8 @@ const WorkTrackerPage = () => {
                         deleteProject={deleteProject}
                     />
 
-                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '4px solid var(--color-text)', paddingTop: 'var(--spacing-lg)' }}>
-                        <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Dagelijkse Gewoontes</h2>
+                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-lg)' }}>
+                        <h2 className="card-title">Dagelijkse Gewoontes</h2>
                         <DailyHabitsForm
                             date={selectedDate}
                             habit={dailyHabits[selectedDate]}
@@ -205,8 +152,8 @@ const WorkTrackerPage = () => {
                         />
                     </div>
 
-                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '4px solid var(--color-text)', paddingTop: 'var(--spacing-lg)' }}>
-                        <h2 style={{ textTransform: 'uppercase', marginBottom: 'var(--spacing-md)' }}>Andere Activiteiten</h2>
+                    <div style={{ marginTop: 'var(--spacing-xl)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-lg)' }}>
+                        <h2 className="card-title">Andere Activiteiten</h2>
                         <OtherActivitiesForm
                             date={selectedDate}
                             activities={otherActivities[selectedDate] || []}
@@ -216,12 +163,12 @@ const WorkTrackerPage = () => {
                     </div>
                 </section>
 
-                <WorkAnalytics 
-                    workHours={workLogs} 
-                    onDayClick={handleDayClick} 
+                <WorkAnalytics
+                    workHours={workLogs}
+                    onDayClick={handleDayClick}
                     dailyHabits={dailyHabits}
-                    workLogEntries={allEntries}
-                    otherActivities={allOtherActivities}
+                    workLogEntries={recentEntries}
+                    otherActivities={otherActivitiesList}
                     projects={projects}
                 />
             </div>
@@ -233,19 +180,20 @@ const WorkTrackerPage = () => {
                     allWorkHours={workLogs}
                     onClose={() => setModalDate(null)}
                     onDelete={deleteWorkLogEntry}
+                    onEdit={editWorkLogEntry}
                     fetchEntries={fetchWorkLogEntries}
                     projects={projects}
                 />
             )}
 
-            <AIAssistant 
+            <AIAssistant
                 data={{
                     workHours: workLogs,
                     dailyHabits,
-                    workLogEntries: allEntries,
-                    otherActivities: allOtherActivities,
+                    workLogEntries: recentEntries,
+                    otherActivities: otherActivitiesList,
                     projects
-                }} 
+                }}
                 onAddWorkLog={addWorkLogEntry}
                 onUpsertHabit={upsertDailyHabit}
             />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Plus, Search, X, Loader2 } from 'lucide-react';
 import { useProjects } from '../context/ProjectsContext';
 import type { ProjectStats } from '../hooks/useSupabaseProjects';
+import { emptyTaskCounts } from '../lib/tasks';
 import { PROJECT_COLORS, DEFAULT_PROJECT_COLOR } from '../lib/projectColors';
 import { formatHours } from '../lib/time';
 
@@ -17,13 +18,6 @@ interface TimerStartModalProps {
 
 const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: 'var(--spacing-sm)',
-    border: 'var(--brutalist-border)',
-    fontSize: '0.95rem',
-    fontFamily: 'var(--font-mono)',
-    outline: 'none',
-    background: 'var(--color-bg)',
-    color: 'var(--color-text)',
     boxSizing: 'border-box'
 };
 
@@ -79,7 +73,7 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
         if (!created) return;
         setStats(prev => [
             ...prev,
-            { ...created, total_hours: 0, sessions: 0, hours_last_7: 0, hours_last_30: 0, avg_session: 0, last_worked: null }
+            { ...created, total_hours: 0, sessions: 0, hours_last_7: 0, hours_last_30: 0, avg_session: 0, last_worked: null, tasks: emptyTaskCounts() }
         ]);
         setSelectedId(created.id);
         setShowNew(false);
@@ -96,57 +90,52 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
     };
 
     return (
-        <div
-            style={{
-                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-md)'
-            }}
-            onClick={onClose}
-        >
+        <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={onClose}>
             <div
+                className="modal-panel"
                 style={{
-                    background: 'var(--color-bg)',
-                    border: 'var(--brutalist-border)',
-                    boxShadow: '8px 8px 0px var(--color-text)',
-                    width: '100%', maxWidth: '520px', maxHeight: '90vh',
-                    display: 'flex', flexDirection: 'column'
+                    maxWidth: '520px',
+                    padding: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden'
                 }}
                 onClick={e => e.stopPropagation()}
             >
                 <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: 'var(--spacing-md) var(--spacing-lg)',
-                    background: 'var(--color-text)', color: 'var(--color-bg)'
+                    borderBottom: '1px solid var(--color-border)'
                 }}>
-                    <h2 style={{ margin: 0, fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '1.3rem' }}>
+                    <h2 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>
                         {switchedFrom ? 'Volgend project' : 'Start timer'}
                     </h2>
-                    <button
-                        onClick={onClose}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--color-bg)', cursor: 'pointer', padding: 0 }}
-                    >
-                        <X size={22} />
+                    <button className="modal-close" onClick={onClose} aria-label="Sluiten">
+                        <X size={18} />
                     </button>
                 </div>
 
                 {switchedFrom && (
                     <div style={{
-                        padding: 'var(--spacing-sm) var(--spacing-lg)',
-                        background: 'var(--color-primary)', color: 'white',
-                        fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase'
+                        padding: 'var(--spacing-xs) var(--spacing-lg)',
+                        background: 'var(--color-surface-2)',
+                        borderBottom: '1px solid var(--color-border)',
+                        color: 'var(--color-text-muted)',
+                        fontSize: 'var(--text-xs)'
                     }}>
                         ✓ Sessie op {switchedFrom} opgeslagen
                     </div>
                 )}
 
                 <div style={{ padding: 'var(--spacing-lg)', overflowY: 'auto', flex: 1 }}>
-                    <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '6px' }}>
+                    <label className="label" htmlFor="timer-project-search">
                         Waar ga je aan werken?
                     </label>
 
                     <div style={{ position: 'relative', marginBottom: 'var(--spacing-sm)' }}>
-                        <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                        <Search size={15} className="muted" style={{ position: 'absolute', left: 'var(--spacing-sm)', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                         <input
+                            id="timer-project-search"
                             type="text"
                             value={query}
                             autoFocus={!initialProjectId}
@@ -157,17 +146,18 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
                     </div>
 
                     <div style={{
-                        border: '2px solid rgba(128,128,128,0.3)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
                         maxHeight: '210px', overflowY: 'auto',
                         display: 'flex', flexDirection: 'column'
                     }}>
                         {loading ? (
-                            <div style={{ padding: 'var(--spacing-md)', opacity: 0.5, fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                LADEN...
+                            <div className="muted" style={{ padding: 'var(--spacing-md)', fontSize: 'var(--text-sm)' }}>
+                                Laden…
                             </div>
                         ) : ranked.length === 0 ? (
-                            <div style={{ padding: 'var(--spacing-md)', opacity: 0.5, fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                {query ? 'GEEN PROJECT GEVONDEN' : 'NOG GEEN PROJECTEN'}
+                            <div className="muted" style={{ padding: 'var(--spacing-md)', fontSize: 'var(--text-sm)' }}>
+                                {query ? 'Geen project gevonden' : 'Nog geen projecten'}
                             </div>
                         ) : (
                             ranked.map(p => {
@@ -177,32 +167,31 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
                                         key={p.id}
                                         onClick={() => setSelectedId(p.id)}
                                         style={{
-                                            display: 'flex', alignItems: 'center', gap: '10px',
-                                            padding: 'var(--spacing-sm) var(--spacing-md)',
+                                            display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)',
+                                            padding: 'var(--spacing-xs) var(--spacing-sm)',
                                             border: 'none',
-                                            borderLeft: `6px solid ${isSelected ? p.color : 'transparent'}`,
-                                            borderBottom: '1px solid rgba(128,128,128,0.2)',
-                                            background: isSelected ? 'var(--color-text)' : 'transparent',
-                                            color: isSelected ? 'var(--color-bg)' : 'var(--color-text)',
+                                            borderRadius: 0,
+                                            boxShadow: 'none',
+                                            background: isSelected ? 'var(--color-surface-2)' : 'transparent',
                                             cursor: 'pointer', textAlign: 'left', width: '100%'
                                         }}
                                     >
                                         <div style={{
-                                            width: '12px', height: '12px', borderRadius: '2px',
-                                            background: p.color, border: '2px solid currentColor', flexShrink: 0
+                                            width: '9px', height: '9px', borderRadius: 'var(--radius-full)',
+                                            background: p.color, flexShrink: 0
                                         }} />
                                         <span style={{
-                                            flex: 1, fontWeight: 'bold', fontSize: '0.9rem',
+                                            flex: 1, fontWeight: isSelected ? 600 : 400, fontSize: 'var(--text-sm)',
                                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                                         }}>
                                             {p.name}
                                         </span>
-                                        <span style={{ fontSize: '0.7rem', opacity: 0.6, flexShrink: 0 }}>
+                                        <span className="muted" style={{ fontSize: 'var(--text-xs)', flexShrink: 0 }}>
                                             {p.last_worked ? p.last_worked.slice(5) : 'nieuw'}
                                         </span>
-                                        <span style={{
-                                            fontFamily: 'var(--font-heading)', fontSize: '0.85rem',
-                                            opacity: 0.8, flexShrink: 0, minWidth: '52px', textAlign: 'right'
+                                        <span className="muted" style={{
+                                            fontFamily: 'var(--font-heading)', fontSize: 'var(--text-sm)',
+                                            flexShrink: 0, minWidth: '52px', textAlign: 'right'
                                         }}>
                                             {formatHours(p.total_hours)}
                                         </span>
@@ -226,40 +215,35 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
                                 placeholder="Naam van het nieuwe project..."
                                 style={inputStyle}
                             />
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-2xs)' }}>
                                 {PROJECT_COLORS.map(color => (
                                     <button
                                         key={color}
                                         onClick={() => setNewColor(color)}
+                                        aria-label={`Kleur ${color}`}
                                         style={{
-                                            width: '26px', height: '26px', borderRadius: '2px', background: color,
-                                            border: newColor === color ? '3px solid var(--color-text)' : '2px solid transparent',
-                                            outline: newColor === color ? '2px solid var(--color-primary)' : 'none',
+                                            width: '24px', height: '24px', borderRadius: 'var(--radius-full)', background: color,
+                                            border: 'none',
+                                            boxShadow: newColor === color
+                                                ? '0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary)'
+                                                : 'none',
                                             cursor: 'pointer', padding: 0
                                         }}
                                     />
                                 ))}
                             </div>
-                            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
                                 <button
                                     onClick={handleCreate}
                                     disabled={!newName.trim()}
-                                    style={{
-                                        flex: 1, background: 'var(--color-primary)', color: 'white',
-                                        padding: 'var(--spacing-sm)', border: 'var(--brutalist-border)',
-                                        fontFamily: 'var(--font-heading)', textTransform: 'uppercase',
-                                        cursor: 'pointer', opacity: newName.trim() ? 1 : 0.5
-                                    }}
+                                    className="btn-primary"
+                                    style={{ flex: 1, padding: 'var(--spacing-xs)' }}
                                 >
                                     Aanmaken
                                 </button>
                                 <button
                                     onClick={() => setShowNew(false)}
-                                    style={{
-                                        background: 'var(--color-bg)', color: 'var(--color-text)',
-                                        padding: 'var(--spacing-sm) var(--spacing-md)', border: 'var(--brutalist-border)',
-                                        fontFamily: 'var(--font-heading)', textTransform: 'uppercase', cursor: 'pointer'
-                                    }}
+                                    style={{ padding: 'var(--spacing-xs) var(--spacing-md)' }}
                                 >
                                     Annuleer
                                 </button>
@@ -270,23 +254,20 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
                             onClick={() => { setShowNew(true); setNewName(query); }}
                             style={{
                                 marginTop: 'var(--spacing-sm)', width: '100%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                padding: 'var(--spacing-sm)', border: '2px dashed rgba(128,128,128,0.5)',
-                                background: 'transparent', color: 'var(--color-text)',
-                                fontFamily: 'var(--font-heading)', textTransform: 'uppercase',
-                                fontSize: '0.8rem', cursor: 'pointer', opacity: 0.7
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-2xs)',
+                                padding: 'var(--spacing-xs)', border: '1px dashed var(--color-border-strong)',
+                                background: 'transparent', color: 'var(--color-text-muted)',
+                                boxShadow: 'none',
+                                fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer'
                             }}
                         >
-                            <Plus size={16} />
+                            <Plus size={15} />
                             Nieuw project
                         </button>
                     )}
 
                     <div style={{ marginTop: 'var(--spacing-lg)' }}>
-                        <label
-                            htmlFor="timer-intent"
-                            style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '6px' }}
-                        >
+                        <label className="label" htmlFor="timer-intent">
                             Wat ga je doen?
                         </label>
                         <input
@@ -299,26 +280,24 @@ export const TimerStartModal = ({ onClose, onStart, busy, switchedFrom, initialP
                             placeholder="Bijv. timer afbouwen en testen"
                             style={inputStyle}
                         />
-                        <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px' }}>
+                        <div className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--spacing-2xs)' }}>
                             Dit staat straks op je focusscherm en wordt je notitie. Aanpassen kan bij het stoppen.
                         </div>
                     </div>
                 </div>
 
-                <div style={{ padding: 'var(--spacing-lg)', borderTop: 'var(--brutalist-border)' }}>
+                <div style={{ padding: 'var(--spacing-md) var(--spacing-lg)', borderTop: '1px solid var(--color-border)' }}>
                     <button
                         onClick={handleStart}
                         disabled={!canStart}
+                        className="btn-primary"
                         style={{
-                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                            background: selected ? selected.color : 'var(--color-primary)', color: 'white',
-                            padding: 'var(--spacing-md)', fontSize: '1.2rem',
-                            fontFamily: 'var(--font-heading)', textTransform: 'uppercase',
-                            border: 'var(--brutalist-border)', boxShadow: '4px 4px 0px var(--color-text)',
-                            cursor: canStart ? 'pointer' : 'not-allowed', opacity: canStart ? 1 : 0.45
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-xs)',
+                            background: selected ? selected.color : 'var(--color-primary)',
+                            padding: 'var(--spacing-sm)', fontSize: 'var(--text-base)',
                         }}
                     >
-                        {busy ? <Loader2 size={22} className="animate-spin" /> : <Play size={22} />}
+                        {busy ? <Loader2 size={17} className="animate-spin" /> : <Play size={17} />}
                         {selected ? `Start — ${selected.name}` : 'Kies een project'}
                     </button>
                 </div>
