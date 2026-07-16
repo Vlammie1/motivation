@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { bumpWorkDataEpoch } from './cache';
 
 // work_logs houdt per dag het totaal bij, work_log_entries de losse sessies.
 // Elke mutatie op entries moet het dagtotaal opnieuw afleiden, anders lopen ze uiteen.
@@ -31,14 +32,26 @@ export const recalcDayTotal = async (userId: string, date: string): Promise<numb
     return total;
 };
 
+export interface WorkEntryRow {
+    id: string;
+    user_id: string;
+    work_date: string;
+    hours: number;
+    note: string | null;
+    project_id: string | null;
+    created_at: string;
+}
+
+/** De aangemaakte sessie plus het nieuwe dagtotaal, zodat de UI kan bijwerken
+ *  zonder alles opnieuw op te halen. */
 export const insertWorkEntry = async (
     userId: string,
     date: string,
     hours: number,
     note?: string,
     projectId?: string
-): Promise<number> => {
-    const { error } = await supabase
+): Promise<{ total: number; entry: WorkEntryRow }> => {
+    const { data, error } = await supabase
         .from('work_log_entries')
         .insert({
             user_id: userId,
@@ -46,11 +59,38 @@ export const insertWorkEntry = async (
             hours,
             note: note || null,
             project_id: projectId || null
-        });
+        })
+        .select()
+        .single();
 
     if (error) throw new Error(error.message);
 
-    return recalcDayTotal(userId, date);
+    const total = await recalcDayTotal(userId, date);
+    bumpWorkDataEpoch();
+    return { total, entry: data as WorkEntryRow };
+};
+
+/** Uren, notitie of project van een bestaande sessie corrigeren. Het dagtotaal
+ *  wordt opnieuw afgeleid, want de uren kunnen veranderd zijn. */
+export const updateWorkEntry = async (
+    userId: string,
+    entryId: string,
+    date: string,
+    updates: { hours?: number; note?: string | null; project_id?: string | null }
+): Promise<{ total: number; entry: WorkEntryRow }> => {
+    const { data, error } = await supabase
+        .from('work_log_entries')
+        .update(updates)
+        .eq('id', entryId)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+    if (error) throw new Error(error.message);
+
+    const total = await recalcDayTotal(userId, date);
+    bumpWorkDataEpoch();
+    return { total, entry: data as WorkEntryRow };
 };
 
 export const deleteWorkEntry = async (userId: string, entryId: string, date: string): Promise<number> => {
@@ -62,5 +102,7 @@ export const deleteWorkEntry = async (userId: string, entryId: string, date: str
 
     if (error) throw new Error(error.message);
 
-    return recalcDayTotal(userId, date);
+    const total = await recalcDayTotal(userId, date);
+    bumpWorkDataEpoch();
+    return total;
 };

@@ -79,7 +79,7 @@ export const HypeButton: React.FC = () => {
                 background: 'var(--color-primary)',
                 color: 'white',
                 border: 'var(--brutalist-border)',
-                boxShadow: 'var(--brutalist-shadow)',
+
                 fontSize: '2.2rem', // Slightly larger
                 fontFamily: 'var(--font-heading)',
                 textTransform: 'uppercase',

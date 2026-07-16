@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { format, startOfYear, endOfYear, eachDayOfInterval, isToday } from 'date-fns';
 import type { WorkHours } from '../types/work';
+import { useTheme } from '../context/ThemeContext';
 
 interface WorkHeatmapProps {
     workHours: WorkHours;
@@ -8,13 +10,18 @@ interface WorkHeatmapProps {
 }
 
 export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatmapProps) => {
-    const endDate = new Date();
-    const startDate = startOfYear(endDate);
-    const days = eachDayOfInterval({ start: startDate, end: endOfYear(endDate) });
+    // De kleuren hangen van het thema af. Lezen uit de context (niet uit het
+    // data-theme attribuut) zodat React opnieuw rendert zodra je wisselt.
+    const { theme } = useTheme();
+
+    const days = useMemo(() => {
+        const now = new Date();
+        return eachDayOfInterval({ start: startOfYear(now), end: endOfYear(now) });
+    }, []);
 
     // Calculate empty squares to align start of year with day of week
     // getDay() returns 0 for Sunday
-    const emptySquares = startOfYear(endDate).getDay();
+    const emptySquares = startOfYear(new Date()).getDay();
 
     // Get theme-aware colors
     const getIntensity = (hours: number) => {
@@ -24,12 +31,10 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
         if (hours >= 12) return '#FF0055'; // OVERDRIVE (Crimson)
         if (hours >= 11) return '#FF8C00'; // IGNITE (Orange)
 
-        const theme = document.documentElement.getAttribute('data-theme') || 'light';
-
-        if (hours === 0) return 'transparent';
+        if (hours === 0) return 'var(--color-muted)';
 
         // Different color schemes for different themes
-        if (theme === 'void' || theme === 'dark') {
+        if (theme === 'dark') {
             // VOID theme - Neon green on dark
             if (hours < 2) return 'rgba(172, 254, 202, 1)';
             if (hours < 4) return 'rgba(112, 255, 164, 1)';
@@ -37,7 +42,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 8) return 'rgba(5, 133, 52, 1)';
             if (hours < 10) return 'rgba(1, 77, 52, 1)';
             return '#FFD700'; // GOLD for 10-10.9 (Legendary)
-        } else if (theme === 'cyber' || theme === 'system') {
+        } else if (theme === 'cyber') {
             // SYSTEM theme - Cyan/magenta
             if (hours < 2) return 'rgba(255, 188, 238, 1)';
             if (hours < 4) return 'rgba(245, 102, 207, 1)';
@@ -45,7 +50,7 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
             if (hours < 8) return 'rgba(204, 13, 109, 0.94)';
             if (hours < 10) return 'rgba(154, 2, 70, 0.78)';
             return '#00FFFF'; // Electric Cyan for 10-10.9
-        } else if (theme === 'hazard' || theme === 'warning') {
+        } else if (theme === 'hazard') {
             // WARNING theme - Orange/red
             if (hours < 2) return 'rgba(255, 134, 134, 0.93)';
             if (hours < 4) return 'rgba(252, 81, 81, 1)';
@@ -72,31 +77,44 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
 
+    const axisLabelStyle = {
+        fontSize: 'var(--text-xs)',
+        color: 'var(--color-text-muted)',
+        fontWeight: 500,
+    } as const;
+
     return (
         <div className="heatmap-container" style={{ overflowX: 'auto' }}>
-            <div style={{ display: 'flex', gap: '4px', marginBottom: 'var(--spacing-sm)', fontSize: '0.7rem', color: 'gray', paddingLeft: '30px' }}>
+            <div style={{ ...axisLabelStyle, display: 'flex', gap: '3px', marginBottom: 'var(--spacing-xs)', paddingLeft: '32px' }}>
                 {months.map((month, i) => (
                     <div key={i} style={{ flex: 1, minWidth: '30px' }}>{month}</div>
                 ))}
             </div>
 
             <div style={{ display: 'flex' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '8px', fontSize: '0.7rem', color: 'gray', justifyContent: 'space-between', height: '112px' }}>
-                    <span>Sun</span>
-                    <span>Tue</span>
-                    <span>Thu</span>
-                    <span>Sat</span>
+                <div style={{
+                    ...axisLabelStyle,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    marginRight: 'var(--spacing-xs)',
+                    justifyContent: 'space-between',
+                    height: '111px'
+                }}>
+                    <span>Zo</span>
+                    <span>Di</span>
+                    <span>Do</span>
+                    <span>Za</span>
                 </div>
 
                 <div style={{
                     display: 'grid',
                     gridAutoFlow: 'column',
                     gridTemplateRows: 'repeat(7, 1fr)',
-                    gap: '4px'
+                    gap: '3px'
                 }}>
                     {/* Padding for start of year alignment */}
                     {Array.from({ length: emptySquares }).map((_, i) => (
-                        <div key={`empty-${i}`} style={{ width: '12px', height: '12px', visibility: 'hidden' }} />
+                        <div key={`empty-${i}`} style={{ width: '13px', height: '13px', visibility: 'hidden' }} />
                     ))}
 
                     {days.map((day) => {
@@ -110,17 +128,17 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
                                 onClick={() => onSelectDate(dateStr)}
                                 title={`${dateStr}: ${hours}h`}
                                 style={{
-                                    width: '12px',
-                                    height: '12px',
+                                    width: '13px',
+                                    height: '13px',
+                                    borderRadius: '3px',
                                     backgroundColor: getIntensity(hours),
-                                    border: isSelected
-                                        ? '2px solid white'
-                                        : (isToday(day) ? '2px solid var(--color-primary)' : '1px solid var(--color-text)'),
+                                    boxShadow: isToday(day) && !isSelected
+                                        ? 'inset 0 0 0 1.5px var(--color-primary)'
+                                        : 'inset 0 0 0 1px rgba(var(--color-text-rgb), 0.06)',
                                     outline: isSelected ? '2px solid var(--color-primary)' : 'none',
                                     outlineOffset: '1px',
                                     cursor: 'pointer',
-                                    transition: 'transform 0.1s',
-                                    opacity: hours === 0 ? 0.5 : 1
+                                    transition: 'transform var(--transition-fast)',
                                 }}
                             />
                         );
@@ -128,21 +146,28 @@ export const WorkHeatmap = ({ workHours, onSelectDate, selectedDate }: WorkHeatm
                 </div>
             </div>
 
-            <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                <span style={{ marginRight: '4px' }}>LESS</span>
+            <div style={{
+                ...axisLabelStyle,
+                marginTop: 'var(--spacing-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px'
+            }}>
+                <span style={{ marginRight: 'var(--spacing-2xs)' }}>Minder</span>
                 {[0, 2, 4, 6, 8, 10, 11, 12, 13, 14].map(h => (
                     <div
                         key={h}
                         title={`${h}h+`}
                         style={{
-                            width: '12px',
-                            height: '12px',
+                            width: '13px',
+                            height: '13px',
+                            borderRadius: '3px',
                             backgroundColor: getIntensity(h),
-                            border: '1px solid var(--color-text)'
+                            boxShadow: 'inset 0 0 0 1px rgba(var(--color-text-rgb), 0.06)'
                         }}
                     />
                 ))}
-                <span style={{ marginLeft: '4px' }}>GRIND GOD</span>
+                <span style={{ marginLeft: 'var(--spacing-2xs)' }}>Grind god</span>
             </div>
         </div >
     );

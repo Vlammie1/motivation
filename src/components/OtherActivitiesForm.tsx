@@ -57,109 +57,95 @@ export const OtherActivitiesForm: React.FC<OtherActivitiesFormProps> = ({
     };
 
     return (
-        <div style={{ marginTop: 'var(--spacing-lg)' }}>
+        <div>
+            {/* Elk veld draagt een label van gelijke hoogte, zodat de inputs en de
+                knop op één lijn blijven staan. */}
             <form onSubmit={handleSubmit} style={{
                 display: 'flex',
+                alignItems: 'flex-start',
                 gap: 'var(--spacing-sm)',
                 flexWrap: 'wrap',
                 marginBottom: 'var(--spacing-md)'
             }}>
                 <div style={{ flex: 2, minWidth: '150px' }}>
+                    <label className="label" htmlFor="activity-label">Activiteit</label>
                     <input
+                        id="activity-label"
                         type="text"
-                        placeholder="Activiteit (bijv. School, Sport)"
+                        placeholder="Bijv. School, Sport"
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
                         required
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '3px solid var(--color-text)',
-                            background: 'var(--color-bg)',
-                            fontWeight: 'bold'
-                        }}
+                        style={{ width: '100%' }}
                     />
                 </div>
-                <div style={{ flex: 1, minWidth: '80px' }}>
+                <div style={{ flex: '0 1 90px', minWidth: '80px' }}>
+                    <label className="label" htmlFor="activity-hours">Uren</label>
                     <input
+                        id="activity-hours"
                         type="number"
-                        placeholder="Uren"
+                        placeholder="0"
                         step="0.1"
                         value={hours}
                         onChange={(e) => setHours(e.target.value)}
                         required
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '3px solid var(--color-text)',
-                            background: 'var(--color-bg)',
-                            fontWeight: 'bold'
-                        }}
+                        style={{ width: '100%' }}
                     />
                 </div>
-                <div style={{ flex: 2, minWidth: '150px', position: 'relative' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                         <span style={{ fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.7 }}>Opmerking</span>
-                         <button
-                            type="button"
-                            onClick={handleAIImprove}
-                            disabled={isImproving || !note.trim()}
-                            title="AI Verbeter"
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                color: 'var(--color-primary)',
-                                fontSize: '0.65rem',
-                                fontWeight: 'bold',
-                                textTransform: 'uppercase',
-                                opacity: (!note.trim() || isImproving) ? 0.3 : 1
-                            }}
-                        >
-                            {isImproving ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                            AI
-                        </button>
+                <div style={{ flex: 2, minWidth: '150px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                        <label className="label" htmlFor="activity-note" style={{ marginBottom: 0 }}>Opmerking</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                            <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>{note.length}/500</span>
+                            <button
+                                type="button"
+                                onClick={handleAIImprove}
+                                disabled={isImproving || !note.trim()}
+                                title="Notitie verbeteren met AI"
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    boxShadow: 'none',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    color: 'var(--color-primary)',
+                                    fontSize: 'var(--text-xs)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {isImproving ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                                AI
+                            </button>
+                        </div>
                     </div>
                     <input
+                        id="activity-note"
                         type="text"
-                        placeholder="Opmerking (optioneel)"
+                        placeholder="Optioneel"
                         value={note}
                         onChange={(e) => setNote(e.target.value.slice(0, 500))}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '3px solid var(--color-text)',
-                            background: 'var(--color-bg)',
-                            fontWeight: 'bold',
-                            boxSizing: 'border-box'
-                        }}
+                        style={{ width: '100%', marginTop: 'var(--spacing-2xs)', boxSizing: 'border-box' }}
                     />
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textAlign: 'right', marginTop: '2px' }}>
-                        {note.length}/500
-                    </div>
                 </div>
-                <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                        padding: '12px 24px',
-                        background: 'var(--color-primary)',
-                        color: 'var(--color-bg)',
-                        border: '3px solid var(--color-text)',
-                        fontWeight: '900',
-                        textTransform: 'uppercase',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '4px 4px 0px var(--color-text)'
-                    }}
-                >
-                    <Plus size={20} /> TOEVOEGEN
-                </button>
+                <div>
+                    {/* Onzichtbaar label: houdt de knop op dezelfde hoogte als de inputs. */}
+                    <span className="label" aria-hidden="true">&nbsp;</span>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="btn-primary"
+                        style={{
+                            padding: 'var(--spacing-xs) var(--spacing-md)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--spacing-2xs)',
+                        }}
+                    >
+                        <Plus size={16} /> Toevoegen
+                    </button>
+                </div>
             </form>
 
             <div style={{ display: 'grid', gap: 'var(--spacing-xs)' }}>
@@ -168,29 +154,42 @@ export const OtherActivitiesForm: React.FC<OtherActivitiesFormProps> = ({
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '10px 15px',
-                        background: 'rgba(var(--color-text-rgb), 0.05)',
-                        border: '2px solid var(--color-text)',
-                        fontWeight: 'bold'
+                        gap: 'var(--spacing-sm)',
+                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        background: 'var(--color-surface-2)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <BookOpen size={16} color="var(--color-primary)" />
-                            <div>
-                                <span style={{ textTransform: 'uppercase' }}>{item.label}</span>
-                                <span style={{ marginLeft: '10px', opacity: 0.6 }}>{item.hours}u</span>
-                                {item.note && <span style={{ marginLeft: '10px', fontSize: '0.8rem', fontStyle: 'italic', fontWeight: 'normal' }}>"{item.note}"</span>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', minWidth: 0 }}>
+                            <BookOpen size={15} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+                            <div style={{ minWidth: 0 }}>
+                                <span style={{ fontWeight: 600 }}>{item.label}</span>
+                                <span className="muted" style={{ marginLeft: 'var(--spacing-xs)' }}>{item.hours}u</span>
+                                {item.note && (
+                                    <span className="muted" style={{ marginLeft: 'var(--spacing-xs)', fontSize: 'var(--text-sm)' }}>
+                                        {item.note}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <button
                             onClick={() => onDelete(item.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4444' }}
+                            style={{
+                                display: 'flex',
+                                background: 'none',
+                                border: 'none',
+                                boxShadow: 'none',
+                                color: 'var(--color-text-muted)',
+                                padding: 'var(--spacing-2xs)',
+                                flexShrink: 0,
+                            }}
                             title="Verwijderen"
                         >
-                            <Trash2 size={18} />
+                            <Trash2 size={15} />
                         </button>
                     </div>
                 )) : (
-                    <div style={{ padding: '10px', fontSize: '0.9rem', opacity: 0.5, fontStyle: 'italic' }}>
+                    <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                         Geen andere activiteiten geregistreerd voor vandaag.
                     </div>
                 )}

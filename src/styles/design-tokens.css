@@ -1,69 +1,162 @@
+/* ==========================================================================
+   Design tokens
+   Refined brutalism: dezelfde kleuren en Impact-koppen, maar met een echte
+   schaal voor spacing, radius en elevatie in plaats van ad-hoc px-waarden.
+   ========================================================================== */
+
 :root {
-  /* Default (Light/Premium) */
-  --color-bg: #fdfdfd;
-  --color-text: #1a1a1a;
+  color-scheme: light;
+
+  /* --- Surfaces ---------------------------------------------------------
+     --color-canvas = de pagina, --color-bg = een kaart die daarop ligt.
+     Componenten zetten `background: var(--color-bg)`, dus die blijft de
+     surface-kleur en mag nooit gelijk zijn aan de canvas. */
+  --color-canvas: #f4f4f5;
+  --color-bg: #ffffff;
+  --color-surface-2: #f7f7f8;
+  --color-text: #17181c;
+  --color-text-rgb: 23, 24, 28;
+  --color-text-muted: #6d7078;
+
+  /* --- Accenten (ongewijzigd) ------------------------------------------- */
   --color-primary: #ff3c00;
   --color-secondary: #ffc400;
   --color-accent: #2962ff;
-  --color-border: #1a1a1a;
-  --color-muted: #efefef;
+  --color-on-primary: #ffffff;
 
-  /* Typography */
+  /* --- Lijnen ------------------------------------------------------------ */
+  --color-border: rgba(23, 24, 28, 0.10);
+  --color-border-strong: rgba(23, 24, 28, 0.16);
+  --color-muted: #f0f0f1;
+
+  /* --- Typografie -------------------------------------------------------- */
   --font-heading: 'Impact', 'Anton', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Spacing */
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 4rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
 
-  /* Borders & Shadows */
-  --border-width: 4px;
-  --shadow-offset: 8px;
-  --brutalist-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--color-border);
-  --brutalist-border: var(--border-width) solid var(--color-border);
+  /* --- Spacing: 4px-basis ------------------------------------------------ */
+  --spacing-2xs: 0.25rem; /*  4px */
+  --spacing-xs: 0.5rem;   /*  8px */
+  --spacing-sm: 0.75rem;  /* 12px */
+  --spacing-md: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;   /* 24px */
+  --spacing-xl: 2rem;     /* 32px */
+  --spacing-2xl: 3rem;    /* 48px */
 
-  /* Animation */
-  --transition-fast: 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* --- Radius ------------------------------------------------------------ */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* --- Elevatie ----------------------------------------------------------
+     Geen slagschaduwen: diepte komt uit randen en surface-kleuren. De tokens
+     blijven bestaan zodat componenten één plek houden om naar te verwijzen.
+     --shadow-ring is geen schaduw maar de focus-indicator. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-ring: 0 0 0 3px rgba(255, 60, 0, 0.25);
+
+  /* --- Aliassen voor de oude brutalist-namen -----------------------------
+     De hele codebase verwijst hiernaar; ze mappen nu op het nieuwe systeem
+     zodat componenten automatisch meegaan. */
+  --border-width: 1px;
+  --brutalist-border: 1px solid var(--color-border);
+  --brutalist-shadow: var(--shadow-md);
+
+  /* --- Animatie ---------------------------------------------------------- */
+  --transition-fast: 0.16s cubic-bezier(0.2, 0, 0.2, 1);
+  --transition-base: 0.24s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 [data-theme='dark'] {
-  --color-bg: #0a0e14;
-  --color-text: #f0f4f8;
+  color-scheme: dark;
+
+  --color-canvas: #0a0c10;
+  --color-bg: #14171d;
+  --color-surface-2: #1b1f26;
+  --color-text: #eef1f5;
+  --color-text-rgb: 238, 241, 245;
+  --color-text-muted: #949aa5;
+
   --color-primary: #ff5252;
   --color-secondary: #ffd600;
   --color-accent: #bb86fc;
-  --color-border: #f0f4f8;
-  --color-muted: #1e2227;
+  --color-on-primary: #ffffff;
+
+  --color-border: rgba(238, 241, 245, 0.13);
+  --color-border-strong: rgba(238, 241, 245, 0.22);
+  --color-muted: #1e2228;
+
+  --shadow-ring: 0 0 0 3px rgba(255, 82, 82, 0.3);
 }
 
 [data-theme='hazard'] {
-  --color-bg: #ffa000;
-  --color-text: #000000;
-  --color-primary: #000000;
-  --color-secondary: #ffffff;
-  --color-accent: #d32f2f;
-  --color-border: #000000;
-  --color-muted: #e68e00;
+  color-scheme: light;
+
+  --color-canvas: #f5a623;
+  --color-bg: #ffffff;
+  --color-surface-2: #fff6e6;
+  --color-text: #1a1206;
+  --color-text-rgb: 26, 18, 6;
+  --color-text-muted: #7a6641;
+
+  --color-primary: #c2410c;
+  --color-secondary: #f5a623;
+  --color-accent: #b91c1c;
+  --color-on-primary: #ffffff;
+
+  --color-border: rgba(26, 18, 6, 0.12);
+  --color-border-strong: rgba(26, 18, 6, 0.2);
+  --color-muted: #fdf0dc;
+
+  --shadow-ring: 0 0 0 3px rgba(194, 65, 12, 0.22);
 }
 
 [data-theme='cyber'] {
-  --color-bg: #0d0221;
-  --color-text: #00ffa3;
+  color-scheme: dark;
+
+  --color-canvas: #07021a;
+  --color-bg: #130a2b;
+  --color-surface-2: #1b1038;
+  --color-text: #e9e4ff;
+  --color-text-rgb: 233, 228, 255;
+  --color-text-muted: #9d8fc7;
+
   --color-primary: #da00ff;
   --color-secondary: #7000ff;
   --color-accent: #00ffa3;
-  --color-border: #00ffa3;
+  --color-on-primary: #ffffff;
+
+  --color-border: rgba(0, 255, 163, 0.18);
+  --color-border-strong: rgba(0, 255, 163, 0.32);
   --color-muted: #1a0b2e;
-  --brutalist-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--color-primary);
+
+  --shadow-ring: 0 0 0 3px rgba(218, 0, 255, 0.35);
 }
 
+/* ==========================================================================
+   Basis
+   ========================================================================== */
+
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-canvas);
   color: var(--color-text);
   font-family: var(--font-body);
-  transition: background-color 0.4s ease, color 0.4s ease;
+  font-size: var(--text-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--transition-base), color var(--transition-base);
   overflow-x: hidden;
 }
 
@@ -73,27 +166,121 @@ h3 {
   font-family: var(--font-heading);
   text-transform: uppercase;
   margin: 0;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+h1 {
+  font-size: var(--text-3xl);
+}
+
+h2 {
+  font-size: var(--text-xl);
+}
+
+h3 {
+  font-size: var(--text-lg);
+}
+
+/* ==========================================================================
+   Formulier-elementen
+   ========================================================================== */
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-text);
 }
 
 input,
-button {
-  font-family: inherit;
-  border: var(--brutalist-border);
+select,
+textarea {
   background: var(--color-bg);
-  color: var(--color-text);
-  box-shadow: var(--brutalist-shadow);
-  transition: var(--transition-fast);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
 }
 
 input:focus,
-button:active {
-  transform: translate(3px, 3px);
-  box-shadow: 4px 4px 0px var(--color-border);
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-ring);
 }
 
-@keyframes pulse {
+button {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
 
+button:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: var(--color-text-muted);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-ring);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+  background-clip: content-box;
+}
+
+/* ==========================================================================
+   Animaties
+   ========================================================================== */
+
+@keyframes pulse {
   0%,
   100% {
     transform: scale(1);
@@ -128,5 +315,15 @@ button:active {
   50% {
     transform: scale(1);
     opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

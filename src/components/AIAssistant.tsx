@@ -189,11 +189,11 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
 
     return (
         <>
-            <button onClick={() => setIsOpen(!isOpen)} style={{ position: 'fixed', bottom: '24px', right: '24px', width: '64px', height: '64px', borderRadius: '0', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '4px solid black', boxShadow: '8px 8px 0px black', cursor: 'pointer', zIndex: 1000 }} >
+            <button onClick={() => setIsOpen(!isOpen)} style={{ position: 'fixed', bottom: '24px', right: '24px', width: '64px', height: '64px', borderRadius: '0', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-border-strong)', cursor: 'pointer', zIndex: 1000 }} >
                 {isOpen ? <X size={32} /> : <MessageSquare size={32} />}
             </button>
             {isOpen && (
-                <div style={{ position: 'fixed', bottom: '104px', right: '24px', width: '420px', maxWidth: 'calc(100vw - 48px)', height: '650px', background: 'var(--color-bg)', border: '4px solid black', boxShadow: '12px 12px 0px black', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
+                <div style={{ position: 'fixed', bottom: '104px', right: '24px', width: '420px', maxWidth: 'calc(100vw - 48px)', height: '650px', background: 'var(--color-bg)', border: '1px solid var(--color-border-strong)', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
                     <div style={{ padding: '16px', background: 'black', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>OBSERVER v3.1p</span>
                         <X size={20} style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)} />
@@ -202,10 +202,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
                         {messages.map((msg, i) => (
                             <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
                                 <div style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>{msg.role === 'user' ? 'USER' : 'OBS_31P'}</div>
-                                <div style={{ padding: '12px 16px', background: msg.role === 'user' ? 'black' : 'white', color: msg.role === 'user' ? 'white' : 'black', border: '3px solid black', boxShadow: msg.role === 'user' ? 'none' : '4px 4px 0px black' }} className="chat-content">
+                                <div style={{ padding: '12px 16px', background: msg.role === 'user' ? 'black' : 'white', color: msg.role === 'user' ? 'white' : 'black', border: '1px solid var(--color-border-strong)', boxShadow: msg.role === 'user' ? 'none' : 'var(--shadow-md)' }} className="chat-content">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                                     {msg.actionProposal && (
-                                        <div className="proposal-box" style={{ border: '4px solid var(--color-primary)', background: 'white', padding: '12px', marginTop: '10px', boxShadow: '4px 4px 0px black' }}>
+                                        <div className="proposal-box" style={{ border: '1px solid var(--color-primary)', background: 'white', padding: '12px', marginTop: '10px' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px' }}>🚀 ACTION_PENDING</div>
                                             <div style={{ fontSize: '0.8rem', marginBottom: '12px' }}>
                                                 {msg.actionProposal.toolName === 'add_work_entry' ? (
@@ -215,8 +215,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
                                                 )}
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button onClick={() => confirmAction(true)} style={{ flex: 1, padding: '8px', background: 'var(--color-primary)', color: 'white', border: '2px solid black', fontWeight: '900', cursor: 'pointer' }}>APPROVE</button>
-                                                <button onClick={() => confirmAction(false)} style={{ flex: 1, padding: '8px', background: 'white', border: '2px solid black', fontWeight: '900', cursor: 'pointer' }}>DECLINE</button>
+                                                <button onClick={() => confirmAction(true)} style={{ flex: 1, padding: '8px', background: 'var(--color-primary)', color: 'white', border: '1px solid var(--color-border-strong)', fontWeight: '900', cursor: 'pointer' }}>APPROVE</button>
+                                                <button onClick={() => confirmAction(false)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid var(--color-border-strong)', fontWeight: '900', cursor: 'pointer' }}>DECLINE</button>
                                             </div>
                                         </div>
                                     )}
@@ -225,8 +225,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onAddWorkLog, on
                         ))}
                         {isLoading && <div style={{ fontWeight: '900', fontSize: '0.7rem' }}>OBSERVING (3.1 PREVIEW)...</div>}
                     </div>
-                    <div style={{ padding: '16px', borderTop: '4px solid black', display: 'flex', gap: '10px', background: 'white' }}>
-                        <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} placeholder={pendingAction ? "Wait for approval..." : "Input query..."} disabled={!!pendingAction || isLoading} style={{ flex: 1, padding: '12px', border: '3px solid black', outline: 'none', fontWeight: '900' }} />
+                    <div style={{ padding: '16px', borderTop: '1px solid var(--color-border-strong)', display: 'flex', gap: '10px', background: 'white' }}>
+                        <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} placeholder={pendingAction ? "Wait for approval..." : "Input query..."} disabled={!!pendingAction || isLoading} style={{ flex: 1, padding: '12px', border: '1px solid var(--color-border-strong)', outline: 'none', fontWeight: '900' }} />
                         <button onClick={handleSend} disabled={isLoading || !input.trim() || !!pendingAction} style={{ width: '48px', height: '48px', background: 'black', color: 'white', border: 'none', cursor: 'pointer' }}><Send size={24} /></button>
                     </div>
                 </div>

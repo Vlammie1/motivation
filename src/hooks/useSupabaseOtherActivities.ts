@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { OtherActivity } from '../types/work';
@@ -8,8 +8,12 @@ export const useSupabaseOtherActivities = () => {
     const [activities, setActivities] = useState<Record<string, OtherActivity[]>>({});
     const [loading, setLoading] = useState(true);
 
-    const fetchOtherActivities = async () => {
-        if (!user) return;
+    const fetchOtherActivities = useCallback(async () => {
+        if (!user) {
+            setActivities({});
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         const { data, error } = await supabase
             .from('other_activities')
@@ -27,8 +31,10 @@ export const useSupabaseOtherActivities = () => {
             setActivities(grouped);
         }
         setLoading(false);
-    };
+    }, [user?.id]);
 
+    // De inserts en deletes werken de lijst hier bij; alles opnieuw ophalen zou
+    // een tweede rondje naar Supabase kosten voor data die we al hebben.
     const addOtherActivity = async (date: string, label: string, hours: number, note: string | null) => {
         if (!user) return;
         const { data, error } = await supabase
@@ -40,10 +46,11 @@ export const useSupabaseOtherActivities = () => {
                 hours,
                 note
             })
-            .select();
+            .select()
+            .single();
 
         if (!error && data) {
-            await fetchOtherActivities();
+            setActivities(prev => ({ ...prev, [date]: [...(prev[date] || []), data] }));
         }
         return { data, error };
     };
@@ -55,14 +62,21 @@ export const useSupabaseOtherActivities = () => {
             .eq('id', id);
 
         if (!error) {
-            await fetchOtherActivities();
+            setActivities(prev => {
+                const next: Record<string, OtherActivity[]> = {};
+                Object.entries(prev).forEach(([date, list]) => {
+                    const kept = list.filter(a => a.id !== id);
+                    if (kept.length) next[date] = kept;
+                });
+                return next;
+            });
         }
         return { error };
     };
 
     useEffect(() => {
-        if (user) fetchOtherActivities();
-    }, [user]);
+        fetchOtherActivities();
+    }, [fetchOtherActivities]);
 
     return { activities, loading, addOtherActivity, deleteOtherActivity, fetchOtherActivities };
 };

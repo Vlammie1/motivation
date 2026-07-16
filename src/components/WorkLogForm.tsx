@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FolderOpen, X, Sparkles, Loader2 } from 'lucide-react';
+import { FolderOpen, X, Sparkles, Loader2, Plus } from 'lucide-react';
 import { generateGeminiContent } from '../lib/gemini';
 import { ProjectsModal } from './ProjectsModal';
 import type { ProjectWithHours } from '../hooks/useSupabaseProjects';
@@ -83,7 +83,7 @@ export const WorkLogForm = ({
                 {currentHours > 0 && (
                     <div style={{
                         padding: 'var(--spacing-sm) var(--spacing-md)',
-                        border: '3px solid var(--color-primary)',
+                        border: '1px solid var(--color-primary)',
                         background: 'rgba(var(--color-primary-rgb, 0,0,0), 0.05)',
                         fontWeight: 'bold',
                         fontSize: '0.9rem',
@@ -94,27 +94,24 @@ export const WorkLogForm = ({
                     </div>
                 )}
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-md)', alignItems: 'flex-end' }}>
-                    <div style={{ flex: '0 0 auto', minWidth: '200px' }}>
-                        <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                            Date
-                        </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
+                    <div style={{ flex: '0 0 auto', minWidth: '160px' }}>
+                        <span className="label">Datum</span>
                         <div style={{
-                            padding: 'var(--spacing-sm)',
-                            border: 'var(--brutalist-border)',
-                            background: 'var(--color-bg)',
-                            color: 'var(--color-text)',
+                            padding: 'var(--spacing-xs) var(--spacing-sm)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'var(--color-surface-2)',
+                            color: 'var(--color-text-muted)',
                             fontFamily: 'var(--font-heading)',
-                            fontWeight: 'bold',
-                            opacity: 0.8
                         }}>
                             {date}
                         </div>
                     </div>
 
-                    <div style={{ flex: '0 0 auto', minWidth: '150px' }}>
-                        <label htmlFor="hours-input" style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                            Hours This Session
+                    <div style={{ flex: '0 0 auto', minWidth: '130px' }}>
+                        <label className="label" htmlFor="hours-input">
+                            Uren deze sessie
                         </label>
                         <input
                             id="hours-input"
@@ -127,45 +124,35 @@ export const WorkLogForm = ({
                             onChange={(e) => setHours(e.target.value)}
                             style={{
                                 width: '100%',
-                                padding: 'var(--spacing-sm)',
-                                border: 'var(--brutalist-border)',
-                                fontSize: '1.2rem',
+                                fontSize: 'var(--text-lg)',
                                 fontFamily: 'var(--font-heading)',
-                                outline: 'none',
-                                background: 'var(--color-bg)',
-                                color: 'var(--color-text)'
                             }}
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={!hours || parseFloat(hours) <= 0}
-                        style={{
-                            background: 'var(--color-primary)',
-                            color: 'white',
-                            padding: 'var(--spacing-sm) var(--spacing-xl)',
-                            fontSize: '1.1rem',
-                            fontWeight: 'bold',
-                            fontFamily: 'var(--font-heading)',
-                            textTransform: 'uppercase',
-                            border: 'var(--brutalist-border)',
-                            cursor: 'pointer',
-                            boxShadow: '4px 4px 0px var(--color-text)',
-                            height: '46px',
-                            opacity: (!hours || parseFloat(hours) <= 0) ? 0.5 : 1
-                        }}
-                        onMouseDown={e => e.currentTarget.style.boxShadow = 'none'}
-                        onMouseUp={e => e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-text)'}
-                    >
-                        + Add Session
-                    </button>
+                    <div>
+                        {/* Onzichtbaar label houdt de knop op één lijn met de inputs. */}
+                        <span className="label" aria-hidden="true">&nbsp;</span>
+                        <button
+                            type="submit"
+                            disabled={!hours || parseFloat(hours) <= 0}
+                            className="btn-primary"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 'var(--spacing-2xs)',
+                                padding: 'var(--spacing-xs) var(--spacing-md)',
+                            }}
+                        >
+                            <Plus size={16} /> Sessie toevoegen
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ position: 'relative' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
-                        <label htmlFor="note-input" style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                            Note <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 'normal' }}>(optional)</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="label" htmlFor="note-input" style={{ marginBottom: 0 }}>
+                            Notitie <span style={{ textTransform: 'none', fontWeight: 400 }}>(optioneel)</span>
                         </label>
                         <button
                             type="button"
@@ -174,15 +161,14 @@ export const WorkLogForm = ({
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                cursor: 'pointer',
+                                boxShadow: 'none',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
+                                gap: '3px',
                                 color: 'var(--color-primary)',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                textTransform: 'uppercase',
-                                padding: '2px 4px',
+                                fontSize: 'var(--text-xs)',
+                                fontWeight: 600,
+                                padding: 'var(--spacing-2xs)',
                             }}
                         >
                             <Sparkles size={12} />
@@ -197,8 +183,8 @@ export const WorkLogForm = ({
                             right: 0,
                             width: '280px',
                             background: 'var(--color-bg)',
-                            border: '3px solid black',
-                            boxShadow: '6px 6px 0px black',
+                            border: '1px solid var(--color-border-strong)',
+
                             padding: '12px',
                             zIndex: 10,
                             display: 'flex',
@@ -215,7 +201,7 @@ export const WorkLogForm = ({
                                 style={{
                                     width: '100%',
                                     padding: '8px',
-                                    border: '2px solid black',
+                                    border: '1px solid var(--color-border-strong)',
                                     fontSize: '0.85rem',
                                     fontFamily: 'var(--font-mono)',
                                     resize: 'none',
@@ -228,7 +214,7 @@ export const WorkLogForm = ({
                                 style={{
                                     background: 'var(--color-primary)',
                                     color: 'white',
-                                    border: '2px solid black',
+                                    border: '1px solid var(--color-border-strong)',
                                     padding: '6px',
                                     fontWeight: 'bold',
                                     cursor: 'pointer',
@@ -288,7 +274,7 @@ export const WorkLogForm = ({
                                 height: '12px',
                                 borderRadius: '2px',
                                 background: selectedProject.color,
-                                border: '2px solid var(--color-text)',
+                                border: '1px solid var(--color-border-strong)',
                                 flexShrink: 0
                             }} />
                             <span style={{
@@ -325,7 +311,7 @@ export const WorkLogForm = ({
                                 onClick={() => setShowProjectsModal(true)}
                                 style={{
                                     background: 'transparent',
-                                    border: '2px solid var(--color-text)',
+                                    border: '1px solid var(--color-border-strong)',
                                     cursor: 'pointer',
                                     color: 'var(--color-text)',
                                     padding: '2px 8px',

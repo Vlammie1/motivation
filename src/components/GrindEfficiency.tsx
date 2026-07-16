@@ -40,93 +40,101 @@ export const GrindEfficiency: React.FC<GrindEfficiencyProps> = ({ totalYearHours
     return (
         <div style={{
             marginTop: 'var(--spacing-lg)',
-            border: 'var(--brutalist-border)',
-            padding: 'var(--spacing-md)',
-            background: 'var(--color-bg)',
-            position: 'relative'
+            paddingTop: 'var(--spacing-lg)',
+            borderTop: '1px solid var(--color-border)',
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
-                <h3 style={{ textTransform: 'uppercase', margin: 0, fontSize: '1rem' }}>True Grind %</h3>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-base)' }}>True Grind %</h3>
                 {!isEditing ? (
-                    <button onClick={handleEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                        <Settings size={16} />
+                    <button
+                        onClick={handleEdit}
+                        title="Aannames aanpassen"
+                        style={{
+                            display: 'flex',
+                            border: 'none',
+                            background: 'none',
+                            boxShadow: 'none',
+                            color: 'var(--color-text-muted)',
+                            padding: 'var(--spacing-2xs)'
+                        }}
+                    >
+                        <Settings size={15} />
                     </button>
                 ) : null}
             </div>
 
             {isEditing ? (
-                <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'flex-end', marginBottom: 'var(--spacing-md)' }}>
+                <div style={{
+                    display: 'flex',
+                    gap: 'var(--spacing-sm)',
+                    alignItems: 'flex-end',
+                    marginBottom: 'var(--spacing-md)',
+                    padding: 'var(--spacing-sm)',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    flexWrap: 'wrap'
+                }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold' }}>SLEEP (HRS)</label>
+                        <label className="label" htmlFor="grind-sleep">Slaap (uren)</label>
                         <input
+                            id="grind-sleep"
                             type="number"
                             value={tempSleep}
                             onChange={(e) => setTempSleep(parseFloat(e.target.value) || 0)}
-                            style={{ width: '80px', padding: '4px', fontFamily: 'var(--font-mono)' }}
+                            style={{ width: '84px' }}
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold' }}>NON-WORK (HRS)</label>
+                        <label className="label" htmlFor="grind-nonwork">Niet-werk (uren)</label>
                         <input
+                            id="grind-nonwork"
                             type="number"
                             value={tempCant}
                             onChange={(e) => setTempCant(parseFloat(e.target.value) || 0)}
-                            style={{ width: '80px', padding: '4px', fontFamily: 'var(--font-mono)' }}
+                            style={{ width: '84px' }}
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={handleSave} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>
-                            <Save size={16} />
+                    <div style={{ display: 'flex', gap: 'var(--spacing-2xs)' }}>
+                        <button onClick={handleSave} className="btn-primary" title="Opslaan" style={{ display: 'flex', padding: 'var(--spacing-xs)' }}>
+                            <Save size={15} />
                         </button>
-                        <button onClick={handleCancel} style={{ background: 'var(--color-text)', color: 'var(--color-bg)', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>
-                            <X size={16} />
+                        <button onClick={handleCancel} title="Annuleren" style={{ display: 'flex', padding: 'var(--spacing-xs)' }}>
+                            <X size={15} />
                         </button>
                     </div>
                 </div>
             ) : null}
 
             <div style={{
-                height: '40px',
-                background: '#333',
-                width: '100%',
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
+                height: '8px',
+                background: 'var(--color-muted)',
+                borderRadius: 'var(--radius-full)',
                 overflow: 'hidden'
             }}>
                 <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
                     height: '100%',
                     width: `${Math.min(100, efficiency)}%`,
                     background: 'var(--color-primary)',
-                    transition: 'width 1s ease-out'
+                    borderRadius: 'var(--radius-full)',
+                    transition: 'width 0.8s cubic-bezier(0.2, 0, 0.2, 1)'
                 }} />
-                <div style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    width: '100%',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: '1.2rem',
-                    textShadow: '1px 1px 0 #000'
-                }}>
-                    {efficiency.toFixed(1)}% ON THE GRIND
-                </div>
             </div>
 
             <div style={{
                 marginTop: 'var(--spacing-xs)',
-                fontSize: '0.7rem',
-                opacity: 0.7,
+                fontSize: 'var(--text-xs)',
                 display: 'flex',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                gap: 'var(--spacing-sm)'
             }}>
-                <span>POTENTIAL: {potentialTotal} HRS</span>
-                <span>ACTUAL: {totalYearHours} HRS</span>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--text-lg)' }}>
+                    {efficiency.toFixed(1)}%
+                </span>
+                <span className="muted">
+                    {totalYearHours} van {potentialTotal} mogelijke uren
+                </span>
             </div>
         </div>
     );

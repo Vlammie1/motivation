@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Settings2 } from 'lucide-react';
 import type { WorkHours } from '../types/work';
 import { format, subDays, startOfYear } from 'date-fns';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -6,6 +7,46 @@ import useLocalStorage from '../hooks/useLocalStorage';
 interface WorkStatsProps {
     workHours: WorkHours;
 }
+
+const progressCardStyle = {
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-md)',
+    padding: 'var(--spacing-md)',
+    background: 'var(--color-surface-2)',
+} as const;
+
+const progressLabelStyle = {
+    fontSize: 'var(--text-xs)',
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: 'var(--color-text-muted)',
+    marginBottom: 'var(--spacing-2xs)',
+} as const;
+
+const progressValueStyle = {
+    fontSize: 'var(--text-xl)',
+    fontFamily: 'var(--font-heading)',
+    lineHeight: 1.1,
+    marginBottom: 'var(--spacing-xs)',
+} as const;
+
+const ProgressBar = ({ value, color }: { value: number; color: string }) => (
+    <div style={{
+        height: '5px',
+        background: 'var(--color-border)',
+        borderRadius: 'var(--radius-full)',
+        overflow: 'hidden',
+    }}>
+        <div style={{
+            height: '100%',
+            width: `${Math.min(100, Math.max(0, value))}%`,
+            background: color,
+            borderRadius: 'var(--radius-full)',
+            transition: 'width var(--transition-base)',
+        }} />
+    </div>
+);
 
 export const WorkStats = ({ workHours }: WorkStatsProps) => {
     const [birthDate, setBirthDate] = useLocalStorage<string>('user-birthdate', '');
@@ -83,30 +124,33 @@ export const WorkStats = ({ workHours }: WorkStatsProps) => {
 
     const StatBox = ({ label, value, unit, highlight }: { label: string, value: string | number, unit?: string, highlight?: boolean }) => (
         <div style={{
-            border: highlight ? '4px solid var(--color-primary)' : '4px solid var(--color-text)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
             padding: 'var(--spacing-md)',
-            textAlign: 'center',
-            background: highlight ? 'var(--color-primary)' : 'transparent',
-            color: highlight ? 'white' : 'var(--color-text)',
+            background: highlight ? 'var(--color-primary)' : 'var(--color-surface-2)',
+            color: highlight ? 'var(--color-on-primary)' : 'var(--color-text)',
             position: 'relative'
         }}>
-            <div style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: 'var(--spacing-xs)' }}>{label}</div>
-            <div style={{ fontSize: '2rem', fontFamily: 'var(--font-heading)' }}>
-                {value}<span style={{ fontSize: '1rem', marginLeft: '4px' }}>{unit}</span>
+            <div style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                opacity: highlight ? 0.85 : 1,
+                color: highlight ? 'inherit' : 'var(--color-text-muted)',
+                marginBottom: 'var(--spacing-2xs)'
+            }}>{label}</div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontFamily: 'var(--font-heading)', lineHeight: 1.1 }}>
+                {value}<span style={{ fontSize: 'var(--text-sm)', marginLeft: '3px', opacity: 0.7 }}>{unit}</span>
             </div>
             {highlight && currentStreak > 0 && (
                 <div style={{
                     position: 'absolute',
-                    top: '-10px',
-                    right: '-10px',
-                    background: 'var(--color-secondary)',
-                    color: 'var(--color-text)',
-                    padding: '4px 8px',
-                    fontSize: '0.7rem',
-                    fontWeight: 'bold',
-                    border: '2px solid var(--color-text)'
+                    top: 'var(--spacing-xs)',
+                    right: 'var(--spacing-xs)',
+                    fontSize: 'var(--text-xs)'
                 }}>
-                    🔥 ON FIRE
+                    🔥
                 </div>
             )}
         </div>
@@ -114,61 +158,56 @@ export const WorkStats = ({ workHours }: WorkStatsProps) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--spacing-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--spacing-sm)' }}>
                 <StatBox label="Total Grind" value={totalHours} unit="hrs" />
                 <StatBox label="Monthly Total" value={monthHours} unit="hrs" />
                 <StatBox label="Avg Per Day" value={avgHours} unit="hrs/d" />
                 <StatBox label="Current Streak" value={currentStreak} unit="days" highlight={currentStreak >= 3} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                <div style={{
-                    border: 'var(--brutalist-border)',
-                    padding: 'var(--spacing-md)',
-                    textAlign: 'center',
-                    background: 'var(--color-bg)'
-                }}>
-                    <div style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: 'var(--spacing-xs)' }}>YEAR PROGRESS</div>
-                    <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)' }}>{yearProgress.toFixed(4)}%</div>
-                    <div style={{ height: '4px', background: '#333', marginTop: '8px', width: '100%' }}>
-                        <div style={{ height: '100%', width: `${yearProgress}%`, background: 'var(--color-primary)' }} />
-                    </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-sm)' }}>
+                <div style={progressCardStyle}>
+                    <div style={progressLabelStyle}>Year progress</div>
+                    <div style={progressValueStyle}>{yearProgress.toFixed(4)}%</div>
+                    <ProgressBar value={yearProgress} color="var(--color-primary)" />
                 </div>
 
-                <div style={{
-                    border: 'var(--brutalist-border)',
-                    padding: 'var(--spacing-md)',
-                    textAlign: 'center',
-                    background: 'var(--color-bg)',
-                    position: 'relative'
-                }}>
-                    <div style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: 'var(--spacing-xs)' }}>
-                        LIFE USED
+                <div style={progressCardStyle}>
+                    <div style={{ ...progressLabelStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Life used</span>
                         <button
                             onClick={() => setIsEditingBirthday(!isEditingBirthday)}
-                            style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}
+                            title="Geboortedatum instellen"
+                            style={{
+                                display: 'flex',
+                                padding: 'var(--spacing-2xs)',
+                                border: 'none',
+                                background: 'none',
+                                boxShadow: 'none',
+                                color: 'var(--color-text-muted)'
+                            }}
                         >
-                            ⚙️
+                            <Settings2 size={13} />
                         </button>
                     </div>
                     {isEditingBirthday ? (
-                        <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <input
-                                type="date"
-                                value={birthDate}
-                                onChange={(e) => setBirthDate(e.target.value)}
-                                style={{ fontFamily: 'var(--font-mono)', padding: '4px' }}
-                            />
-                        </div>
+                        <input
+                            type="date"
+                            value={birthDate}
+                            onChange={(e) => setBirthDate(e.target.value)}
+                            style={{ width: '100%', fontSize: 'var(--text-sm)' }}
+                        />
                     ) : (
                         <>
-                            <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)' }}>
-                                {birthDate ? lifeProgress.toFixed(5) : '???'}%
+                            <div style={progressValueStyle}>
+                                {birthDate ? `${lifeProgress.toFixed(5)}%` : '—'}
                             </div>
-                            <div style={{ height: '4px', background: '#333', marginTop: '8px', width: '100%' }}>
-                                <div style={{ height: '100%', width: `${lifeProgress}%`, background: 'var(--color-secondary)' }} />
-                            </div>
-                            {!birthDate && <div style={{ fontSize: '0.7rem', color: 'red', marginTop: '4px' }}>SET BIRTHDATE</div>}
+                            <ProgressBar value={lifeProgress} color="var(--color-secondary)" />
+                            {!birthDate && (
+                                <div className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--spacing-2xs)' }}>
+                                    Stel je geboortedatum in
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

@@ -27,70 +27,58 @@ export const DailyHabitsForm: React.FC<DailyHabitsFormProps> = ({ date, habit, o
         }
     };
 
-    const inputStyle: React.CSSProperties = {
-        width: '100%',
-        padding: 'var(--spacing-sm)',
-        border: 'var(--brutalist-border)',
-        fontSize: '1.1rem',
-        fontFamily: 'var(--font-heading)',
-        outline: 'none',
-        background: 'var(--color-bg)',
-        color: 'var(--color-text)',
-        boxSizing: 'border-box'
+    const labelStyle: React.CSSProperties = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--spacing-2xs)',
     };
 
     return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-md)', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
             <div style={{ flex: '1 1 150px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <Sun size={14} color="var(--color-primary)" /> Wake Up
+                <label className="label" htmlFor="habit-wake" style={labelStyle}>
+                    <Sun size={12} color="var(--color-primary)" /> Opstaan
                 </label>
                 <input
+                    id="habit-wake"
                     type="time"
                     value={wakeTime}
                     onChange={(e) => setWakeTime(e.target.value)}
-                    style={inputStyle}
+                    style={{ width: '100%' }}
                 />
             </div>
 
             <div style={{ flex: '1 1 150px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <Moon size={14} color="#AF00FF" /> Sleep
+                <label className="label" htmlFor="habit-sleep" style={labelStyle}>
+                    <Moon size={12} color="#AF00FF" /> Slapen
                 </label>
                 <input
+                    id="habit-sleep"
                     type="time"
                     value={sleepTime}
                     onChange={(e) => setSleepTime(e.target.value)}
-                    style={inputStyle}
+                    style={{ width: '100%' }}
                 />
             </div>
 
-            <button
-                onClick={handleSave}
-                disabled={isSaving}
-                style={{
-                    background: 'var(--color-text)',
-                    color: 'var(--color-bg)',
-                    padding: 'var(--spacing-sm) var(--spacing-xl)',
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    fontFamily: 'var(--font-heading)',
-                    textTransform: 'uppercase',
-                    border: 'var(--brutalist-border)',
-                    cursor: 'pointer',
-                    boxShadow: '4px 4px 0px var(--color-primary)',
-                    height: '46px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    opacity: isSaving ? 0.7 : 1
-                }}
-                onMouseDown={e => e.currentTarget.style.boxShadow = 'none'}
-                onMouseUp={e => e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-primary)'}
-            >
-                <Save size={18} />
-                {isSaving ? 'Saving...' : 'Save Habits'}
-            </button>
+            <div>
+                {/* Onzichtbaar label houdt de knop op één lijn met de inputs. */}
+                <span className="label" aria-hidden="true">&nbsp;</span>
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="btn-primary"
+                    style={{
+                        padding: 'var(--spacing-xs) var(--spacing-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-2xs)',
+                    }}
+                >
+                    <Save size={15} />
+                    {isSaving ? 'Opslaan…' : 'Opslaan'}
+                </button>
+            </div>
         </div>
     );
 };

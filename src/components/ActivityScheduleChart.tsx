@@ -111,7 +111,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
         <div style={{
             marginTop: 'var(--spacing-xl)',
             paddingTop: 'var(--spacing-lg)',
-            borderTop: '3px solid var(--color-text)',
+            borderTop: '1px solid var(--color-border-strong)',
             position: 'relative'
         }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
@@ -121,7 +121,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', border: '2px solid var(--color-text)', background: 'var(--color-bg)' }}>
+                    <div style={{ display: 'flex', border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)' }}>
                         {[7, 14, 30].map(r => (
                             <button
                                 key={r}
@@ -142,9 +142,9 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', border: '2px solid var(--color-text)', background: 'var(--color-bg)' }}>
+                    <div style={{ display: 'flex', border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)' }}>
                         <button onClick={() => setOffset((o: number) => o + 1)} style={{ padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}><ChevronLeft size={16} /></button>
-                        <button onClick={() => setOffset((o: number) => Math.max(0, o - 1))} style={{ padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer', borderLeft: '2px solid var(--color-text)' }} disabled={offset === 0}><ChevronRight size={16} /></button>
+                        <button onClick={() => setOffset((o: number) => Math.max(0, o - 1))} style={{ padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer', borderLeft: '1px solid var(--color-border-strong)' }} disabled={offset === 0}><ChevronRight size={16} /></button>
                     </div>
                 </div>
             </div>
@@ -153,7 +153,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                 <div style={{ minWidth: `${viewRange * 40}px`, height: `${chartHeight + 40}px`, position: 'relative' }}>
                     
                     {/* Y-Axis Labels */}
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 40, width: '40px', borderRight: '2px solid var(--color-text)' }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 40, width: '40px', borderRight: '1px solid var(--color-border-strong)' }}>
                         {Array.from({ length: yRange.max - yRange.min + 1 }).map((_, i) => {
                             const h = yRange.min + i;
                             const displayH = h >= 24 ? h - 24 : h;
@@ -270,7 +270,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                                 fontWeight: '900',
                                                 zIndex: 6,
                                                 whiteSpace: 'nowrap',
-                                                border: '1px solid var(--color-text)',
+                                                border: '1px solid var(--color-border)',
                                                 pointerEvents: 'none'
                                             }}>
                                                 {day.totalWorkHours.toFixed(1)}h
@@ -327,7 +327,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                             width: '10px',
                                             height: '10px',
                                             background: 'var(--color-primary)',
-                                            border: '2px solid var(--color-text)',
+                                            border: '1px solid var(--color-border-strong)',
                                             zIndex: 5,
                                             cursor: 'pointer'
                                         }}
@@ -348,7 +348,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                                 width: '10px',
                                                 height: '10px',
                                                 background: '#AF00FF',
-                                                border: '2px solid var(--color-text)',
+                                                border: '1px solid var(--color-border-strong)',
                                                 zIndex: 5,
                                                 cursor: 'pointer'
                                             }}
@@ -403,8 +403,8 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                             padding: 'var(--spacing-sm) var(--spacing-md)',
                             zIndex: 100,
                             pointerEvents: 'none',
-                            border: '2px solid var(--color-primary)',
-                            boxShadow: '4px 4px 0px rgba(0,0,0,0.2)',
+                            border: '1px solid var(--color-primary)',
+
                             fontSize: '0.75rem',
                             fontWeight: 'bold',
                             minWidth: '150px'
@@ -438,13 +438,13 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
 
             <div style={{ display: 'flex', gap: 'var(--spacing-lg)', marginTop: 'var(--spacing-sm)', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ width: '8px', height: '8px', background: 'var(--color-primary)', border: '1px solid var(--color-text)' }} /> Wake
+                    <div style={{ width: '8px', height: '8px', background: 'var(--color-primary)', border: '1px solid var(--color-border)' }} /> Wake
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ width: '8px', height: '8px', background: '#AF00FF', border: '1px solid var(--color-text)' }} /> Sleep
+                    <div style={{ width: '8px', height: '8px', background: '#AF00FF', border: '1px solid var(--color-border)' }} /> Sleep
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ width: '16px', height: '8px', background: '#888', border: '1px solid var(--color-text)' }} /> Work
+                    <div style={{ width: '16px', height: '8px', background: '#888', border: '1px solid var(--color-border)' }} /> Work
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <div style={{ width: '16px', height: '8px', background: '#A0A0A0', border: '1px dashed var(--color-text)' }} /> Andere
