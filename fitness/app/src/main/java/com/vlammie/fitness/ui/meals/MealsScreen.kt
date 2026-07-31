@@ -46,12 +46,12 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.fill.CaretLeft
 import com.adamglin.phosphoricons.fill.CaretRight
-import com.adamglin.phosphoricons.fill.Check
 import com.adamglin.phosphoricons.fill.Drop
 import com.adamglin.phosphoricons.fill.Plus
 import com.adamglin.phosphoricons.fill.X
 import com.vlammie.fitness.data.model.Meal
 import com.vlammie.fitness.data.model.NutritionPlan
+import com.vlammie.fitness.ui.components.FillCircle
 import com.vlammie.fitness.ui.components.FitCard
 import com.vlammie.fitness.ui.components.SecondaryButton
 import com.vlammie.fitness.ui.components.SectionHeader
@@ -302,18 +302,7 @@ private fun MealRow(meal: Meal, done: Boolean, onToggle: (Boolean) -> Unit) {
             .padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(RoundedCornerShape(50))
-                .background(if (done) Accent else Color.Transparent)
-                .border(1.5.dp, if (done) Accent else Surface3, RoundedCornerShape(50)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (done) {
-                Icon(PhosphorIcons.Fill.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
-            }
-        }
+        FillCircle(checked = done)
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Tag(meal.time)

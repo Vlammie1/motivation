@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -51,11 +53,14 @@ import com.adamglin.phosphoricons.fill.ForkKnife
 import com.adamglin.phosphoricons.fill.Lightning
 import com.adamglin.phosphoricons.fill.Play
 import com.vlammie.fitness.data.model.DayPlan
+import java.time.DayOfWeek
 import com.vlammie.fitness.data.model.Exercise
 import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.data.model.Program
 import com.vlammie.fitness.ui.components.BigActionButton
+import com.vlammie.fitness.ui.components.FillCircle
 import com.vlammie.fitness.ui.components.FitCard
+import com.vlammie.fitness.ui.components.Sparkle
 import com.vlammie.fitness.ui.components.GlowBackdrop
 import com.vlammie.fitness.ui.components.SectionHeader
 import com.vlammie.fitness.ui.components.Tag
@@ -117,16 +122,15 @@ internal fun HomeContent(
         ) {
             item { Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars).height(12.dp)) }
 
+            item { WeekStrip(state) }
+
             item {
-                Column {
-                    Text(
-                        text = "${dayLabel(state.date).uppercase()} · ${shortDate(state.date)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Accent,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text("VANDAAG", style = MaterialTheme.typography.displayMedium, color = TextPrimary)
-                }
+                Text(
+                    text = "VANDAAG",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
 
             item { TodayHeroCard(state) }
@@ -191,6 +195,52 @@ internal fun HomeContent(
 }
 
 @Composable
+private fun WeekStrip(state: HomeUiState) {
+    val monday = state.date.with(DayOfWeek.MONDAY)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        (0..6).forEach { offset ->
+            val day = monday.plusDays(offset.toLong())
+            val isToday = day == state.date
+            val isTraining = Program.planFor(state.route, day.dayOfWeek) is DayPlan.Training
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = dayLabel(day).take(2),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isToday) Accent else TextTertiary,
+                )
+                Text(
+                    text = "${day.dayOfMonth}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = when {
+                        isToday -> Accent
+                        isTraining -> TextSecondary
+                        else -> TextTertiary
+                    },
+                )
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                !isTraining -> Color.Transparent
+                                isToday -> Accent
+                                else -> Surface3
+                            }
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun TodayHeroCard(state: HomeUiState) {
     val shape = RoundedCornerShape(24.dp)
     Box(modifier = Modifier.fillMaxWidth().clip(shape)) {
@@ -205,19 +255,28 @@ private fun HeroCardContent(state: HomeUiState) {
         when (val plan = state.plan) {
             is DayPlan.Training -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Tag("Route ${state.route.key}", background = Color(0x66000000), color = Color.White)
+                    Tag("Route ${state.route.key}", background = Color(0x4D1A0500), color = Color.White)
                     Tag(
                         "${plan.day.exercises.size} oefeningen",
-                        background = Color(0x66000000),
+                        background = Color(0x4D1A0500),
                         color = Color.White,
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Text(
-                    text = plan.day.title.uppercase(),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = TextPrimary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Sparkle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp).rotate(-14f),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = plan.day.title.uppercase(),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = TextPrimary,
+                    )
+                }
                 Text(plan.day.focus, style = MaterialTheme.typography.bodyLarge, color = Color(0xF2FFFFFF))
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -244,13 +303,22 @@ private fun HeroCardContent(state: HomeUiState) {
             }
 
             is DayPlan.Rest -> {
-                Tag("Route ${state.route.key}", background = Color(0x66000000), color = Color.White)
+                Tag("Route ${state.route.key}", background = Color(0x4D1A0500), color = Color.White)
                 Spacer(Modifier.height(14.dp))
-                Text(
-                    text = plan.label.uppercase(),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = TextPrimary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Sparkle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp).rotate(-14f),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = plan.label.uppercase(),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = TextPrimary,
+                    )
+                }
                 Text(plan.note, style = MaterialTheme.typography.bodyLarge, color = Color(0xF2FFFFFF))
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -288,18 +356,7 @@ private fun ExerciseCheckRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(RoundedCornerShape(50))
-                .background(if (checked) Accent else Color.Transparent)
-                .border(1.5.dp, if (checked) Accent else Surface3, RoundedCornerShape(50)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (checked) {
-                Icon(PhosphorIcons.Fill.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
-            }
-        }
+        FillCircle(checked = checked)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = exercise.setsLabel,

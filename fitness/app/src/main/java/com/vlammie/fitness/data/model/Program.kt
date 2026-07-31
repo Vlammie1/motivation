@@ -29,6 +29,13 @@ data class Target(
         else -> "$min-$max${sideSuffix()}"
     }
 
+    /** Alleen het getal, voor het grote cijfer op het sessiescherm. */
+    fun shortLabel(): String = when {
+        amrap -> "MAX"
+        min == max -> "$min"
+        else -> "$min-$max"
+    }
+
     private fun sideSuffix() = if (perSide) " per kant" else ""
 
     companion object {

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -65,9 +67,10 @@ import com.adamglin.phosphoricons.fill.SkipForward
 import com.adamglin.phosphoricons.fill.X
 import com.vlammie.fitness.data.model.Unit as MeasureUnit
 import com.vlammie.fitness.ui.components.BigActionButton
+import com.vlammie.fitness.ui.components.Sparkle
 import com.vlammie.fitness.ui.components.Tag
-import com.vlammie.fitness.ui.components.ThinProgressBar
 import com.vlammie.fitness.ui.theme.Accent
+import com.vlammie.fitness.ui.theme.AccentBrush
 import com.vlammie.fitness.ui.theme.AccentBright
 import com.vlammie.fitness.ui.theme.Hairline
 import com.vlammie.fitness.ui.theme.Ink
@@ -180,19 +183,17 @@ internal fun SessionContent(
                 .windowInsetsPadding(WindowInsets.systemBars)
                 .padding(horizontal = 20.dp),
         ) {
+            SegmentedProgress(
+                total = state.totalSets,
+                done = state.completedSets,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+            Spacer(Modifier.height(18.dp))
             SessionTopBar(
                 state = state,
                 onQuit = onQuit,
                 onTogglePause = onTogglePause,
-            )
-
-            Spacer(Modifier.height(14.dp))
-            ThinProgressBar(progress = state.progress)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "${state.completedSets}/${state.totalSets} sets · ${formatDuration(state.totalElapsed)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextTertiary,
+                onSkipExercise = onSkipExercise,
             )
 
             when (state.phase) {
@@ -219,44 +220,71 @@ internal fun SessionContent(
 }
 
 @Composable
+private fun SegmentedProgress(total: Int, done: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        repeat(total.coerceAtLeast(1)) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (index < done) Accent else Surface2),
+            )
+        }
+    }
+}
+
+@Composable
 private fun SessionTopBar(
     state: SessionUiState,
     onQuit: () -> Unit,
     onTogglePause: () -> Unit,
+    onSkipExercise: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircleIcon(icon = PhosphorIcons.Fill.X, onClick = onQuit)
-        Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.dayTitle.uppercase(),
+                text = state.dayTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 color = TextPrimary,
-                textAlign = TextAlign.Center,
             )
-            if (state.exercises.isNotEmpty() && state.phase != Phase.FINISHED) {
-                Text(
-                    text = "Oefening ${(state.exerciseIndex + 1).coerceAtMost(state.exercises.size)}/${state.exercises.size}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextTertiary,
-                )
-            }
+            Text(
+                text = formatClock(state.totalElapsed),
+                style = MaterialTheme.typography.titleLarge,
+                color = TextSecondary,
+            )
         }
         if (state.phase != Phase.FINISHED) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable(onClick = onSkipExercise)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    PhosphorIcons.Fill.SkipForward,
+                    contentDescription = null,
+                    tint = TextPrimary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text("Skip", style = MaterialTheme.typography.labelLarge, color = TextPrimary)
+            }
+            Spacer(Modifier.width(6.dp))
             CircleIcon(
                 icon = if (state.paused) PhosphorIcons.Fill.Play else PhosphorIcons.Fill.Pause,
                 onClick = onTogglePause,
             )
-        } else {
-            Spacer(Modifier.size(40.dp))
+            Spacer(Modifier.width(6.dp))
         }
+        CircleIcon(icon = PhosphorIcons.Fill.X, onClick = onQuit)
     }
 }
 
@@ -264,60 +292,88 @@ private fun SessionTopBar(
 private fun CircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(38.dp)
             .clip(RoundedCornerShape(50))
             .background(Surface2)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(18.dp))
     }
 }
 
 @Composable
 private fun WorkContent(state: SessionUiState, modifier: Modifier = Modifier) {
     val exercise = state.exercise ?: return
+    val countdown = state.countdownLeft
+
+    val bigText = if (countdown != null) formatDuration(countdown) else exercise.target.shortLabel()
+    val unitLabel = when {
+        countdown != null -> "SECONDEN"
+        exercise.target.perSide -> "HERHALINGEN PER KANT"
+        else -> "HERHALINGEN"
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Tag("Set ${state.setIndex + 1} van ${exercise.sets}")
-        Spacer(Modifier.height(18.dp))
         Text(
-            text = exercise.name.uppercase(),
-            style = MaterialTheme.typography.displayLarge,
+            text = bigText,
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontSize = if (bigText.length <= 3) 128.sp else 96.sp,
+                lineHeight = if (bigText.length <= 3) 128.sp else 96.sp,
+            ),
+            color = Accent,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = unitLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = Accent,
+        )
+
+        Spacer(Modifier.height(28.dp))
+        Text(
+            text = exercise.name,
+            style = MaterialTheme.typography.headlineLarge,
             color = TextPrimary,
             textAlign = TextAlign.Center,
         )
         if (exercise.hint != null) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text(exercise.hint, style = MaterialTheme.typography.bodyLarge, color = TextTertiary)
         }
-        Spacer(Modifier.height(34.dp))
 
-        val countdown = state.countdownLeft
-        if (countdown != null) {
-            Text(
-                text = formatDuration(countdown),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 72.sp),
-                color = Accent,
-            )
-            Text("volhouden", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-        } else {
-            Text(
-                text = if (exercise.target.amrap) "MAX" else exercise.target.label().substringBefore(" per"),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp),
-                color = Accent,
-            )
-            Text(
-                text = if (exercise.target.perSide) "herhalingen per kant" else "herhalingen",
-                style = MaterialTheme.typography.labelLarge,
-                color = TextSecondary,
+        Spacer(Modifier.height(20.dp))
+        Tag("Set ${state.setIndex + 1} van ${exercise.sets}")
+
+        Spacer(Modifier.height(28.dp))
+        // Dikke balk als voortgang binnen deze oefening.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.62f)
+                .height(12.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Surface2),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(
+                        if (countdown != null) {
+                            1f - countdown / exercise.target.max.toFloat()
+                        } else {
+                            (state.setIndex + 1) / exercise.sets.toFloat()
+                        }
+                    )
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(AccentBrush),
             )
         }
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(24.dp))
         Text(
             text = if (state.paused) "Gepauzeerd" else "Tik op het scherm als je klaar bent",
             style = MaterialTheme.typography.bodyLarge,
@@ -491,6 +547,13 @@ private fun FinishedContent(state: SessionUiState, modifier: Modifier = Modifier
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        Icon(
+            imageVector = Sparkle,
+            contentDescription = null,
+            tint = Accent,
+            modifier = Modifier.size(56.dp).rotate(-14f),
+        )
+        Spacer(Modifier.height(14.dp))
         Text("SESSIE KLAAR", style = MaterialTheme.typography.displayLarge, color = TextPrimary)
         Spacer(Modifier.height(8.dp))
         Text(state.focus, style = MaterialTheme.typography.bodyLarge, color = TextTertiary)
@@ -529,12 +592,7 @@ private fun SessionBottomBar(
     onExit: () -> Unit,
 ) {
     when (state.phase) {
-        Phase.WORK -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            SkipButton("Oefening overslaan", onSkipExercise)
-        }
+        Phase.WORK -> Spacer(Modifier.height(4.dp))
 
         Phase.REST -> Row(
             modifier = Modifier.fillMaxWidth(),
@@ -633,6 +691,10 @@ private fun Context.vibrate() {
     }
     vibrator?.vibrate(VibrationEffect.createOneShot(220, VibrationEffect.DEFAULT_AMPLITUDE))
 }
+
+/** Lange notatie voor de kop van de sessie: 00:03:14. */
+fun formatClock(seconds: Int): String =
+    "%02d:%02d:%02d".format(seconds / 3600, (seconds % 3600) / 60, seconds % 60)
 
 fun formatDuration(seconds: Int): String {
     val m = seconds / 60

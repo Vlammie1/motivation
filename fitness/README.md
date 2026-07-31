@@ -73,8 +73,17 @@ scherm en schrijft het resultaat naar `screenshots/`.
 ## Vormgeving
 
 Zwarte achtergrond met warme oranje-rode accenten. De grote kaart op de homepage gebruikt
-een mesh-verloop van losse lichtvlekken (geel → oranje → rood) die additief over elkaar
-liggen, met filmkorrel eroverheen — zie `ui/components/GlowBackdrop.kt`.
+een mesh-verloop: een basisverloop van geel-oranje naar rood, daaroverheen zachte
+lichtvlekken die additief mengen, stofdeeltjes en filmkorrel — zie
+`ui/components/GlowBackdrop.kt`.
+
+Verder in de vormgeving:
+
+- Een weekstrook bovenaan Vandaag met een stip onder elke trainingsdag.
+- Afvinken gebeurt met rondjes die zich vullen, niet met vinkjes.
+- De vierpuntige ster is een eigen pad (`ui/components/Sparkle.kt`), geen icoon uit een set.
+- Het sessiescherm is een speler: segmentbalk bovenaan (één streepje per set), grote
+  teller in het midden en de oefening eronder.
 
 - Kopregels: [Anton](https://fonts.google.com/specimen/Anton) (SIL Open Font License 1.1),
   licentie in `LICENSES/Anton-OFL.txt`.
