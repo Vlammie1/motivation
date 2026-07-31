@@ -23,13 +23,6 @@ val TextTertiary = Color(0xFF6B6B72)
 
 val Danger = Color(0xFFE0483C)
 
-/** De oranje-naar-zwart gloed die de kaarten in de app hun diepte geeft. */
-val GlowBrush = Brush.verticalGradient(
-    0f to Color(0xFFC6541A),
-    0.55f to Color(0xFF3A1C0A),
-    1f to Color(0xFF0D0C0C),
-)
-
 val AccentBrush = Brush.horizontalGradient(
-    listOf(Color(0xFFFF8A2B), Color(0xFFE4531A)),
+    listOf(Color(0xFFFF8F2E), Color(0xFFD3321A)),
 )

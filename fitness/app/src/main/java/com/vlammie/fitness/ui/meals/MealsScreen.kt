@@ -22,13 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +42,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.CaretLeft
+import com.adamglin.phosphoricons.fill.CaretRight
+import com.adamglin.phosphoricons.fill.Check
+import com.adamglin.phosphoricons.fill.Drop
+import com.adamglin.phosphoricons.fill.Plus
+import com.adamglin.phosphoricons.fill.X
 import com.vlammie.fitness.data.model.Meal
 import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.ui.components.FitCard
@@ -73,6 +74,26 @@ fun MealsScreen(
     viewModel: MealsViewModel = viewModel(factory = MealsViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    MealsContent(
+        state = state,
+        onShiftDate = viewModel::shiftDate,
+        onToggleMeal = viewModel::toggleMeal,
+        onAddWater = viewModel::addWater,
+        onAddExtra = viewModel::addExtra,
+        onRemoveExtra = viewModel::removeExtra,
+    )
+}
+
+@Composable
+internal fun MealsContent(
+    state: MealsUiState,
+    onShiftDate: (Long) -> Unit,
+    onToggleMeal: (String, Boolean) -> Unit,
+    onAddWater: (Int) -> Unit,
+    onAddExtra: (String, Int, Int) -> Unit,
+    onRemoveExtra: (Long) -> Unit,
+) {
     var showExtra by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -92,14 +113,14 @@ fun MealsScreen(
                         color = TextTertiary,
                     )
                 }
-                DateArrow(Icons.Filled.ChevronLeft) { viewModel.shiftDate(-1) }
+                DateArrow(PhosphorIcons.Fill.CaretLeft) { onShiftDate(-1) }
                 Spacer(Modifier.width(8.dp))
-                DateArrow(Icons.Filled.ChevronRight, enabled = !state.isToday) { viewModel.shiftDate(1) }
+                DateArrow(PhosphorIcons.Fill.CaretRight, enabled = !state.isToday) { onShiftDate(1) }
             }
         }
 
         item { TotalsCard(state) }
-        item { WaterCard(state.waterMl, viewModel::addWater) }
+        item { WaterCard(state.waterMl, onAddWater) }
 
         item { SectionHeader(title = "Eetschema", modifier = Modifier.padding(top = 6.dp)) }
 
@@ -107,7 +128,7 @@ fun MealsScreen(
             MealRow(
                 meal = meal,
                 done = meal.id in state.doneMeals,
-                onToggle = { viewModel.toggleMeal(meal.id, it) },
+                onToggle = { onToggleMeal(meal.id, it) },
             )
         }
 
@@ -149,13 +170,13 @@ fun MealsScreen(
                     )
                 }
                 Icon(
-                    imageVector = Icons.Filled.Close,
+                    imageVector = PhosphorIcons.Fill.X,
                     contentDescription = "Verwijderen",
                     tint = TextTertiary,
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(50))
-                        .clickable { viewModel.removeExtra(extra.id) }
+                        .clickable { onRemoveExtra(extra.id) }
                         .padding(6.dp),
                 )
             }
@@ -167,7 +188,7 @@ fun MealsScreen(
             onDismiss = { showExtra = false },
             onConfirm = { name, kcal, protein ->
                 showExtra = false
-                viewModel.addExtra(name, kcal, protein)
+                onAddExtra(name, kcal, protein)
             },
         )
     }
@@ -245,7 +266,7 @@ private fun TotalsCard(state: MealsUiState) {
 private fun WaterCard(waterMl: Int, onAdd: (Int) -> Unit) {
     FitCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.LocalDrink, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+            Icon(PhosphorIcons.Fill.Drop, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text("Water", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
             Spacer(Modifier.weight(1f))
@@ -259,8 +280,8 @@ private fun WaterCard(waterMl: Int, onAdd: (Int) -> Unit) {
         ThinProgressBar(progress = waterMl / NutritionPlan.WATER_MAX_ML.toFloat())
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(text = "+250 ml", icon = Icons.Filled.Add, onClick = { onAdd(NutritionPlan.GLASS_ML) })
-            SecondaryButton(text = "+500 ml", icon = Icons.Filled.Add, onClick = { onAdd(500) })
+            SecondaryButton(text = "+250 ml", icon = PhosphorIcons.Fill.Plus, onClick = { onAdd(NutritionPlan.GLASS_ML) })
+            SecondaryButton(text = "+500 ml", icon = PhosphorIcons.Fill.Plus, onClick = { onAdd(500) })
             if (waterMl > 0) {
                 SecondaryButton(text = "−250", onClick = { onAdd(-NutritionPlan.GLASS_ML) })
             }
@@ -290,7 +311,7 @@ private fun MealRow(meal: Meal, done: Boolean, onToggle: (Boolean) -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             if (done) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
+                Icon(PhosphorIcons.Fill.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
             }
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -299,19 +320,19 @@ private fun MealRow(meal: Meal, done: Boolean, onToggle: (Boolean) -> Unit) {
                 Text(
                     text = "${meal.kcal} kcal · ${meal.protein}g",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextTertiary,
+                    color = TextSecondary,
                 )
             }
             Spacer(Modifier.height(6.dp))
             Text(
                 text = meal.name,
                 style = MaterialTheme.typography.titleLarge,
-                color = if (done) TextTertiary else TextPrimary,
+                color = TextPrimary,
             )
             Text(
                 text = meal.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (done) Surface3 else TextTertiary,
+                color = if (done) TextSecondary else TextTertiary,
             )
         }
     }

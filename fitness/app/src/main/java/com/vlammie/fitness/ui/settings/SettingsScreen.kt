@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -41,6 +39,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.Check
 import com.vlammie.fitness.FitnessApplication
 import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.data.model.Program
@@ -93,6 +94,19 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    SettingsContent(
+        state = state,
+        onRoute = viewModel::setRoute,
+        onRestFeedback = viewModel::setRestFeedback,
+    )
+}
+
+@Composable
+internal fun SettingsContent(
+    state: SettingsUiState,
+    onRoute: (Route) -> Unit,
+    onRestFeedback: (Boolean) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Ink),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
@@ -108,7 +122,7 @@ fun SettingsScreen(
                 RouteCard(
                     route = route,
                     selected = state.route == route,
-                    onClick = { viewModel.setRoute(route) },
+                    onClick = { onRoute(route) },
                 )
             }
         }
@@ -126,7 +140,7 @@ fun SettingsScreen(
                     }
                     Switch(
                         checked = state.restFeedback,
-                        onCheckedChange = viewModel::setRestFeedback,
+                        onCheckedChange = onRestFeedback,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Ink,
                             checkedTrackColor = Accent,
@@ -221,7 +235,7 @@ private fun RouteCard(route: Route, selected: Boolean, onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             if (selected) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(15.dp))
+                Icon(PhosphorIcons.Fill.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(15.dp))
             }
         }
     }

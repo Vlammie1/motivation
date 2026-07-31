@@ -28,11 +28,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +57,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.Pause
+import com.adamglin.phosphoricons.fill.Play
+import com.adamglin.phosphoricons.fill.SkipForward
+import com.adamglin.phosphoricons.fill.X
 import com.vlammie.fitness.data.model.Unit as MeasureUnit
 import com.vlammie.fitness.ui.components.BigActionButton
 import com.vlammie.fitness.ui.components.Tag
@@ -97,61 +98,17 @@ fun SessionScreen(
 
     BackHandler(enabled = state.phase != Phase.FINISHED) { showQuit = true }
 
-    val tapEnabled = state.phase == Phase.WORK && !state.paused
-    val interaction = remember { MutableInteractionSource() }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Ink)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                enabled = tapEnabled,
-            ) { viewModel.completeSet() },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 20.dp),
-        ) {
-            SessionTopBar(
-                state = state,
-                onQuit = { showQuit = true },
-                onTogglePause = viewModel::togglePause,
-            )
-
-            Spacer(Modifier.height(14.dp))
-            ThinProgressBar(progress = state.progress)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "${state.completedSets}/${state.totalSets} sets · ${formatDuration(state.totalElapsed)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextTertiary,
-            )
-
-            when (state.phase) {
-                Phase.WORK -> WorkContent(state, Modifier.weight(1f))
-                Phase.REST -> RestContent(
-                    state = state,
-                    modifier = Modifier.weight(1f),
-                    onAnswer = viewModel::answer,
-                    onCustom = { showCustom = true },
-                )
-
-                Phase.FINISHED -> FinishedContent(state, Modifier.weight(1f))
-            }
-
-            SessionBottomBar(
-                state = state,
-                onSkipExercise = viewModel::skipExercise,
-                onSkipRest = viewModel::skipRest,
-                onExit = onExit,
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-    }
+    SessionContent(
+        state = state,
+        onTap = viewModel::completeSet,
+        onQuit = { showQuit = true },
+        onTogglePause = viewModel::togglePause,
+        onAnswer = viewModel::answer,
+        onCustom = { showCustom = true },
+        onSkipExercise = viewModel::skipExercise,
+        onSkipRest = viewModel::skipRest,
+        onExit = onExit,
+    )
 
     if (showQuit) {
         AlertDialog(
@@ -193,6 +150,75 @@ fun SessionScreen(
 }
 
 @Composable
+internal fun SessionContent(
+    state: SessionUiState,
+    onTap: () -> Unit,
+    onQuit: () -> Unit,
+    onTogglePause: () -> Unit,
+    onAnswer: (Int) -> Unit,
+    onCustom: () -> Unit,
+    onSkipExercise: () -> Unit,
+    onSkipRest: () -> Unit,
+    onExit: () -> Unit,
+) {
+    val tapEnabled = state.phase == Phase.WORK && !state.paused
+    val interaction = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Ink)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = tapEnabled,
+            ) { onTap() },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 20.dp),
+        ) {
+            SessionTopBar(
+                state = state,
+                onQuit = onQuit,
+                onTogglePause = onTogglePause,
+            )
+
+            Spacer(Modifier.height(14.dp))
+            ThinProgressBar(progress = state.progress)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "${state.completedSets}/${state.totalSets} sets · ${formatDuration(state.totalElapsed)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextTertiary,
+            )
+
+            when (state.phase) {
+                Phase.WORK -> WorkContent(state, Modifier.weight(1f))
+                Phase.REST -> RestContent(
+                    state = state,
+                    modifier = Modifier.weight(1f),
+                    onAnswer = onAnswer,
+                    onCustom = onCustom,
+                )
+
+                Phase.FINISHED -> FinishedContent(state, Modifier.weight(1f))
+            }
+
+            SessionBottomBar(
+                state = state,
+                onSkipExercise = onSkipExercise,
+                onSkipRest = onSkipRest,
+                onExit = onExit,
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
 private fun SessionTopBar(
     state: SessionUiState,
     onQuit: () -> Unit,
@@ -204,7 +230,7 @@ private fun SessionTopBar(
             .padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircleIcon(icon = Icons.Filled.Close, onClick = onQuit)
+        CircleIcon(icon = PhosphorIcons.Fill.X, onClick = onQuit)
         Column(
             modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -225,7 +251,7 @@ private fun SessionTopBar(
         }
         if (state.phase != Phase.FINISHED) {
             CircleIcon(
-                icon = if (state.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                icon = if (state.paused) PhosphorIcons.Fill.Play else PhosphorIcons.Fill.Pause,
                 onClick = onTogglePause,
             )
         } else {
@@ -537,7 +563,7 @@ private fun SkipButton(text: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-        Icon(Icons.Filled.SkipNext, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+        Icon(PhosphorIcons.Fill.SkipForward, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
     }
 }
 

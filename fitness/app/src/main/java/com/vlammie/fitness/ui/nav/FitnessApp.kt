@@ -15,11 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -39,6 +34,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.CalendarBlank
+import com.adamglin.phosphoricons.fill.ChartLineUp
+import com.adamglin.phosphoricons.fill.ForkKnife
+import com.adamglin.phosphoricons.fill.GearSix
 import com.vlammie.fitness.ui.home.HomeScreen
 import com.vlammie.fitness.ui.meals.MealsScreen
 import com.vlammie.fitness.ui.progress.ProgressScreen
@@ -62,10 +63,10 @@ object Routes {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(Routes.HOME, "Vandaag", Icons.Filled.CalendarToday),
-    Tab(Routes.PROGRESS, "Voortgang", Icons.Filled.Timeline),
-    Tab(Routes.MEALS, "Voeding", Icons.Filled.Restaurant),
-    Tab(Routes.SETTINGS, "Instellingen", Icons.Filled.Settings),
+    Tab(Routes.HOME, "Vandaag", PhosphorIcons.Fill.CalendarBlank),
+    Tab(Routes.PROGRESS, "Voortgang", PhosphorIcons.Fill.ChartLineUp),
+    Tab(Routes.MEALS, "Voeding", PhosphorIcons.Fill.ForkKnife),
+    Tab(Routes.SETTINGS, "Instellingen", PhosphorIcons.Fill.GearSix),
 )
 
 @Composable
@@ -77,7 +78,11 @@ fun FitnessApp() {
 
     Scaffold(
         containerColor = Ink,
-        bottomBar = { if (showBottomBar) BottomBar(navController, currentRoute) },
+        bottomBar = {
+            if (showBottomBar) {
+                BottomBar(currentRoute = currentRoute, onSelect = navController::navigateToTab)
+            }
+        },
     ) { padding ->
         NavHost(
             navController = navController,
@@ -115,26 +120,25 @@ private fun NavHostController.navigateToTab(route: String) {
 }
 
 @Composable
-private fun BottomBar(navController: NavHostController, currentRoute: String?) {
+internal fun BottomBar(currentRoute: String?, onSelect: (String) -> Unit) {
     Column {
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Hairline))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF0A0A0C))
-                .windowInsetsPadding(WindowInsets.navigationBars)
+                
                 .padding(vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             tabs.forEach { tab ->
-                val selected = navController.currentBackStackEntry?.destination?.hierarchy
-                    ?.any { it.route == tab.route } == true || currentRoute == tab.route
+                val selected = currentRoute == tab.route
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
-                        .clickable { navController.navigateToTab(tab.route) }
+                        .clickable { onSelect(tab.route) }
                         .padding(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     Icon(

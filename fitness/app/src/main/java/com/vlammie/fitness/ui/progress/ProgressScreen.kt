@@ -20,10 +20,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +41,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.ArrowDown
+import com.adamglin.phosphoricons.fill.ArrowUp
+import com.adamglin.phosphoricons.fill.CaretDown
 import com.vlammie.fitness.ui.components.FitCard
 import com.vlammie.fitness.ui.components.PillTabs
 import com.vlammie.fitness.ui.components.SectionHeader
@@ -67,6 +68,27 @@ fun ProgressScreen(
     viewModel: ProgressViewModel = viewModel(factory = ProgressViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    ProgressContent(
+        state = state,
+        onRange = viewModel::selectRange,
+        onMetric = viewModel::selectMetric,
+        onSelectExercise = viewModel::selectExercise,
+        onSelectPoint = viewModel::selectPoint,
+        onLogWeight = viewModel::logWeight,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ProgressContent(
+    state: ProgressUiState,
+    onRange: (Int) -> Unit,
+    onMetric: (Int) -> Unit,
+    onSelectExercise: (String) -> Unit,
+    onSelectPoint: (Int?) -> Unit,
+    onLogWeight: (Double) -> Unit,
+) {
     var showPicker by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val pickerState = rememberModalBottomSheetState()
@@ -81,7 +103,9 @@ fun ProgressScreen(
             Text("VOORTGANG", style = MaterialTheme.typography.displayMedium, color = TextPrimary)
         }
 
-        item { SummaryCard(state, viewModel::selectRange) }
+        item { SummaryCard(state, onRange) }
+
+        item { CheckInCard(state.latestWeight, onLogWeight) }
 
         item {
             SectionHeader(
@@ -103,20 +127,18 @@ fun ProgressScreen(
                 PillTabs(
                     options = listOf("Beste set", "Totaal"),
                     selectedIndex = state.metricIndex,
-                    onSelect = viewModel::selectMetric,
+                    onSelect = onMetric,
                 )
             }
         }
 
-        item { ChartCard(state, viewModel::selectPoint) }
-
-        item { CheckInCard(state.latestWeight, viewModel::logWeight) }
+        item { ChartCard(state, onSelectPoint) }
     }
 
     val detail = state.detail
     if (detail != null) {
         ModalBottomSheet(
-            onDismissRequest = { viewModel.selectPoint(null) },
+            onDismissRequest = { onSelectPoint(null) },
             sheetState = sheetState,
             containerColor = Surface1,
         ) {
@@ -139,7 +161,7 @@ fun ProgressScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                             .clickable {
-                                viewModel.selectExercise(option.id)
+                                onSelectExercise(option.id)
                                 showPicker = false
                             }
                             .padding(vertical = 12.dp, horizontal = 8.dp),
@@ -204,7 +226,7 @@ private fun ExercisePickerRow(name: String, sessions: Int, onClick: () -> Unit) 
                 color = TextTertiary,
             )
         }
-        Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = Accent)
+        Icon(PhosphorIcons.Fill.CaretDown, contentDescription = null, tint = Accent)
     }
 }
 
@@ -292,7 +314,7 @@ private fun Legend(color: Color, label: String) {
 }
 
 @Composable
-private fun DayDetailSheet(detail: DayDetail) {
+internal fun DayDetailSheet(detail: DayDetail) {
     Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 36.dp)) {
         Text(
             text = dutchDate(detail.date).uppercase(),
@@ -333,7 +355,7 @@ private fun DayDetailSheet(detail: DayDetail) {
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                     ) {
                         Icon(
-                            imageVector = if (delta > 0) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                            imageVector = if (delta > 0) PhosphorIcons.Fill.ArrowUp else PhosphorIcons.Fill.ArrowDown,
                             contentDescription = null,
                             tint = if (delta > 0) Color(0xFF56C271) else Color(0xFFE0483C),
                             modifier = Modifier.size(14.dp),

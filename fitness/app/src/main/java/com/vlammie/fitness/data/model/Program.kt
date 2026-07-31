@@ -70,8 +70,9 @@ data class WorkoutDay(
     val estimatedMinutes: Int
         get() {
             val seconds = exercises.sumOf { ex ->
-                val work = if (ex.target.unit == Unit.SECONDS) ex.target.max else ex.target.max * 3
-                ex.sets * (work + ex.restSeconds)
+                // Ruwweg 4 seconden per herhaling, plus wat tijd om klaar te gaan staan.
+                val work = if (ex.target.unit == Unit.SECONDS) ex.target.max else ex.target.max * 4
+                ex.sets * (work + ex.restSeconds + 10)
             }
             return (seconds / 60.0).toInt().coerceAtLeast(1)
         }

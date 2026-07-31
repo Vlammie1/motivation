@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.vlammie.fitness.FitnessApplication
 import com.vlammie.fitness.data.model.DayPlan
-import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.data.model.Program
 import com.vlammie.fitness.data.model.Route
 import com.vlammie.fitness.data.repo.FitnessRepository
@@ -105,28 +104,6 @@ class HomeViewModel(private val repo: FitnessRepository) : ViewModel() {
         viewModelScope.launch { repo.setChecked(dateFlow.value, exerciseId, checked) }
     }
 
-    private fun upcomingDays(route: Route, from: LocalDate): List<UpcomingDay> =
-        (1..6).map { offset ->
-            val date = from.plusDays(offset.toLong())
-            when (val plan = Program.planFor(route, date.dayOfWeek)) {
-                is DayPlan.Training -> UpcomingDay(
-                    date = date,
-                    dayLabel = dayLabel(date),
-                    title = plan.day.title,
-                    focus = plan.day.focus,
-                    isRest = false,
-                )
-
-                is DayPlan.Rest -> UpcomingDay(
-                    date = date,
-                    dayLabel = dayLabel(date),
-                    title = plan.label,
-                    focus = plan.note,
-                    isRest = true,
-                )
-            }
-        }
-
     companion object {
         val Factory = viewModelFactory {
             initializer {
@@ -134,10 +111,31 @@ class HomeViewModel(private val repo: FitnessRepository) : ViewModel() {
                 HomeViewModel(app.repository)
             }
         }
-
-        val kcalGoal = NutritionPlan.KCAL_MIN..NutritionPlan.KCAL_MAX
     }
 }
+
+/** De zes dagen die onder de takenlijst staan. */
+internal fun upcomingDays(route: Route, from: LocalDate): List<UpcomingDay> =
+    (1..6).map { offset ->
+        val date = from.plusDays(offset.toLong())
+        when (val plan = Program.planFor(route, date.dayOfWeek)) {
+            is DayPlan.Training -> UpcomingDay(
+                date = date,
+                dayLabel = dayLabel(date),
+                title = plan.day.title,
+                focus = plan.day.focus,
+                isRest = false,
+            )
+
+            is DayPlan.Rest -> UpcomingDay(
+                date = date,
+                dayLabel = dayLabel(date),
+                title = plan.label,
+                focus = plan.note,
+                isRest = true,
+            )
+        }
+    }
 
 fun dayLabel(date: LocalDate): String = when (date.dayOfWeek) {
     DayOfWeek.MONDAY -> "Maandag"

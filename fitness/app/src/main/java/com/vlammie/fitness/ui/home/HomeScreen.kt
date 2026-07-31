@@ -21,12 +21,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,18 +43,24 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.DisposableEffect
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.Check
+import com.adamglin.phosphoricons.fill.Drop
+import com.adamglin.phosphoricons.fill.ForkKnife
+import com.adamglin.phosphoricons.fill.Lightning
+import com.adamglin.phosphoricons.fill.Play
 import com.vlammie.fitness.data.model.DayPlan
 import com.vlammie.fitness.data.model.Exercise
 import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.data.model.Program
 import com.vlammie.fitness.ui.components.BigActionButton
 import com.vlammie.fitness.ui.components.FitCard
+import com.vlammie.fitness.ui.components.GlowBackdrop
 import com.vlammie.fitness.ui.components.SectionHeader
 import com.vlammie.fitness.ui.components.Tag
 import com.vlammie.fitness.ui.components.ThinProgressBar
 import com.vlammie.fitness.ui.theme.Accent
-import com.vlammie.fitness.ui.theme.AccentBright
-import com.vlammie.fitness.ui.theme.GlowBrush
 import com.vlammie.fitness.ui.theme.Hairline
 import com.vlammie.fitness.ui.theme.Ink
 import com.vlammie.fitness.ui.theme.Surface1
@@ -78,7 +78,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showPicker by remember { mutableStateOf(false) }
 
     // Na middernacht moet de homepage de nieuwe dag laten zien.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -90,6 +89,24 @@ fun HomeScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    HomeContent(
+        state = state,
+        onToggleCheck = viewModel::toggleCheck,
+        onStartSession = onStartSession,
+        onOpenMeals = onOpenMeals,
+        onOpenProgress = onOpenProgress,
+    )
+}
+
+@Composable
+internal fun HomeContent(
+    state: HomeUiState,
+    onToggleCheck: (String, Boolean) -> Unit,
+    onStartSession: (String) -> Unit,
+    onOpenMeals: () -> Unit,
+    onOpenProgress: () -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
     val training = state.trainingDay
 
     Box(modifier = Modifier.fillMaxSize().background(Ink)) {
@@ -125,7 +142,7 @@ fun HomeScreen(
                     ExerciseCheckRow(
                         exercise = exercise,
                         checked = exercise.id in state.checked,
-                        onToggle = { viewModel.toggleCheck(exercise.id, it) },
+                        onToggle = { onToggleCheck(exercise.id, it) },
                     )
                 }
             }
@@ -153,7 +170,7 @@ fun HomeScreen(
         ) {
             BigActionButton(
                 text = if (training != null) "Sessie starten" else "Toch trainen",
-                icon = Icons.Filled.PlayArrow,
+                icon = PhosphorIcons.Fill.Play,
                 onClick = {
                     if (training != null) onStartSession(training.id) else showPicker = true
                 },
@@ -176,21 +193,23 @@ fun HomeScreen(
 @Composable
 private fun TodayHeroCard(state: HomeUiState) {
     val shape = RoundedCornerShape(24.dp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(GlowBrush)
-            .padding(20.dp),
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().clip(shape)) {
+        GlowBackdrop(modifier = Modifier.matchParentSize())
+        HeroCardContent(state)
+    }
+}
+
+@Composable
+private fun HeroCardContent(state: HomeUiState) {
+    Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
         when (val plan = state.plan) {
             is DayPlan.Training -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Tag("Route ${state.route.key}", background = Color(0x33000000), color = AccentBright)
+                    Tag("Route ${state.route.key}", background = Color(0x66000000), color = Color.White)
                     Tag(
                         "${plan.day.exercises.size} oefeningen",
-                        background = Color(0x33000000),
-                        color = AccentBright,
+                        background = Color(0x66000000),
+                        color = Color.White,
                     )
                 }
                 Spacer(Modifier.height(14.dp))
@@ -199,7 +218,7 @@ private fun TodayHeroCard(state: HomeUiState) {
                     style = MaterialTheme.typography.displayMedium,
                     color = TextPrimary,
                 )
-                Text(plan.day.focus, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE8D6C9))
+                Text(plan.day.focus, style = MaterialTheme.typography.bodyLarge, color = Color(0xF2FFFFFF))
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     HeroStat("${plan.day.estimatedMinutes}", "minuten")
@@ -220,19 +239,19 @@ private fun TodayHeroCard(state: HomeUiState) {
                         "${state.checkedCount} van ${plan.day.exercises.size} afgevinkt"
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFE8D6C9),
+                    color = Color(0xF2FFFFFF),
                 )
             }
 
             is DayPlan.Rest -> {
-                Tag("Route ${state.route.key}", background = Color(0x33000000), color = AccentBright)
+                Tag("Route ${state.route.key}", background = Color(0x66000000), color = Color.White)
                 Spacer(Modifier.height(14.dp))
                 Text(
                     text = plan.label.uppercase(),
                     style = MaterialTheme.typography.displayMedium,
                     color = TextPrimary,
                 )
-                Text(plan.note, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE8D6C9))
+                Text(plan.note, style = MaterialTheme.typography.bodyLarge, color = Color(0xF2FFFFFF))
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     HeroStat("${state.sessionsThisWeek}/4", "deze week")
@@ -247,7 +266,7 @@ private fun TodayHeroCard(state: HomeUiState) {
 private fun HeroStat(value: String, label: String) {
     Column {
         Text(value, style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFCBB4A3))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Color(0xCCFFFFFF))
     }
 }
 
@@ -278,19 +297,19 @@ private fun ExerciseCheckRow(
             contentAlignment = Alignment.Center,
         ) {
             if (checked) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
+                Icon(PhosphorIcons.Fill.Check, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
             }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = exercise.setsLabel,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (checked) TextTertiary else Accent,
+                color = if (checked) TextSecondary else Accent,
             )
             Text(
                 text = exercise.name,
                 style = MaterialTheme.typography.titleLarge,
-                color = if (checked) TextTertiary else TextPrimary,
+                color = TextPrimary,
             )
             if (exercise.hint != null) {
                 Text(exercise.hint, style = MaterialTheme.typography.bodyMedium, color = TextTertiary)
@@ -308,7 +327,7 @@ private fun ExerciseCheckRow(
 private fun NutritionStrip(state: HomeUiState, onOpen: () -> Unit) {
     FitCard(onClick = onOpen, modifier = Modifier.padding(top = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Filled.Restaurant, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+            Icon(PhosphorIcons.Fill.ForkKnife, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
             Text("Voeding vandaag", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
             Spacer(Modifier.weight(1f))
             Text("Openen", style = MaterialTheme.typography.labelLarge, color = Accent)
@@ -317,10 +336,10 @@ private fun NutritionStrip(state: HomeUiState, onOpen: () -> Unit) {
         ThinProgressBar(progress = state.nutrition.kcal / NutritionPlan.KCAL_MAX.toFloat())
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            MiniStat(Icons.Filled.Bolt, "${state.nutrition.kcal}", "van ${NutritionPlan.KCAL_MAX} kcal")
+            MiniStat(PhosphorIcons.Fill.Lightning, "${state.nutrition.kcal}", "van ${NutritionPlan.KCAL_MAX} kcal")
             MiniStat(null, "${state.nutrition.protein}g", "van ${NutritionPlan.PROTEIN_MAX}g eiwit")
             MiniStat(
-                Icons.Filled.LocalDrink,
+                PhosphorIcons.Fill.Drop,
                 String.format("%.1fL", state.nutrition.waterMl / 1000f),
                 "van ${NutritionPlan.WATER_MAX_ML / 1000}L",
             )
@@ -383,7 +402,7 @@ private fun UpcomingRow(day: UpcomingDay) {
         }
         if (!day.isRest) {
             Icon(
-                Icons.Filled.Bolt,
+                PhosphorIcons.Fill.Lightning,
                 contentDescription = null,
                 tint = Color(0xFF4A3122),
                 modifier = Modifier.size(18.dp),
