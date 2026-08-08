@@ -8,7 +8,6 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,9 +18,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,30 +48,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.fill.Check
 import com.adamglin.phosphoricons.fill.Pause
 import com.adamglin.phosphoricons.fill.Play
 import com.adamglin.phosphoricons.fill.SkipForward
 import com.adamglin.phosphoricons.fill.X
+import com.vlammie.fitness.data.model.Side
 import com.vlammie.fitness.data.model.Unit as MeasureUnit
+import com.vlammie.fitness.data.model.WEIGHT_STEP_KG
+import com.vlammie.fitness.data.model.formatKg
 import com.vlammie.fitness.ui.components.BigActionButton
 import com.vlammie.fitness.ui.components.Sparkle
 import com.vlammie.fitness.ui.components.Tag
 import com.vlammie.fitness.ui.theme.Accent
-import com.vlammie.fitness.ui.theme.AccentBrush
 import com.vlammie.fitness.ui.theme.AccentBright
 import com.vlammie.fitness.ui.theme.Hairline
 import com.vlammie.fitness.ui.theme.Ink
@@ -92,6 +92,7 @@ fun SessionScreen(
     val context = LocalContext.current
     var showQuit by remember { mutableStateOf(false) }
     var showCustom by remember { mutableStateOf(false) }
+    var showWeight by remember { mutableStateOf(false) }
 
     KeepScreenOn()
 
@@ -109,8 +110,11 @@ fun SessionScreen(
         onAnswer = viewModel::answer,
         onCustom = { showCustom = true },
         onSkipExercise = viewModel::skipExercise,
+        onAddRest = viewModel::addRest,
         onSkipRest = viewModel::skipRest,
         onExit = onExit,
+        onWeightStep = viewModel::adjustWeight,
+        onPickWeight = { showWeight = true },
     )
 
     if (showQuit) {
@@ -150,6 +154,17 @@ fun SessionScreen(
             },
         )
     }
+
+    if (showWeight && question?.weightKg != null) {
+        WeightDialog(
+            initial = question.weightKg,
+            onDismiss = { showWeight = false },
+            onConfirm = {
+                showWeight = false
+                viewModel.setWeight(it)
+            },
+        )
+    }
 }
 
 @Composable
@@ -163,6 +178,9 @@ internal fun SessionContent(
     onSkipExercise: () -> Unit,
     onSkipRest: () -> Unit,
     onExit: () -> Unit,
+    onAddRest: (Int) -> Unit = {},
+    onWeightStep: (Double) -> Unit = {},
+    onPickWeight: () -> Unit = {},
 ) {
     val tapEnabled = state.phase == Phase.WORK && !state.paused
     val interaction = remember { MutableInteractionSource() }
@@ -189,7 +207,7 @@ internal fun SessionContent(
                 modifier = Modifier.padding(top = 10.dp),
             )
             Spacer(Modifier.height(18.dp))
-            SessionTopBar(
+            SessionHeader(
                 state = state,
                 onQuit = onQuit,
                 onTogglePause = onTogglePause,
@@ -203,6 +221,8 @@ internal fun SessionContent(
                     modifier = Modifier.weight(1f),
                     onAnswer = onAnswer,
                     onCustom = onCustom,
+                    onWeightStep = onWeightStep,
+                    onPickWeight = onPickWeight,
                 )
 
                 Phase.FINISHED -> FinishedContent(state, Modifier.weight(1f))
@@ -210,11 +230,21 @@ internal fun SessionContent(
 
             SessionBottomBar(
                 state = state,
-                onSkipExercise = onSkipExercise,
+                onAddRest = onAddRest,
                 onSkipRest = onSkipRest,
                 onExit = onExit,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (state.phase == Phase.REST) 30.dp else 12.dp))
+        }
+
+        // De pauzebalk: dik, vierkant en helemaal onderaan het scherm.
+        if (state.phase == Phase.REST) {
+            RestBar(
+                progress = if (state.restTotal == 0) 0f else state.restLeft / state.restTotal.toFloat(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.navigationBars),
+            )
         }
     }
 }
@@ -237,54 +267,89 @@ private fun SegmentedProgress(total: Int, done: Int, modifier: Modifier = Modifi
     }
 }
 
+/** Puur oranje, geen randen, geen verloop — alleen zolang de pauze loopt. */
 @Composable
-private fun SessionTopBar(
+private fun RestBar(progress: Float, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(16.dp)
+            .background(Surface2),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .background(Accent),
+        )
+    }
+}
+
+/**
+ * Links de oefening waar je mee bezig bent, rechts de knoppen. Zo staat de titel
+ * ("Push-ups") met de subtekst ("Of knee push-ups") boven in beeld en blijft het
+ * midden van het scherm leeg voor alleen het aantal.
+ */
+@Composable
+private fun SessionHeader(
     state: SessionUiState,
     onQuit: () -> Unit,
     onTogglePause: () -> Unit,
     onSkipExercise: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = state.dayTitle,
-                style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
-            )
-            Text(
-                text = formatClock(state.totalElapsed),
-                style = MaterialTheme.typography.titleLarge,
-                color = TextSecondary,
-            )
-        }
-        if (state.phase != Phase.FINISHED) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable(onClick = onSkipExercise)
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    PhosphorIcons.Fill.SkipForward,
-                    contentDescription = null,
-                    tint = TextPrimary,
-                    modifier = Modifier.size(18.dp),
+    val exercise = state.exercise
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise?.name ?: state.dayTitle,
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = TextPrimary,
                 )
-                Text("Skip", style = MaterialTheme.typography.labelLarge, color = TextPrimary)
+                Text(
+                    text = exercise?.hint ?: state.focus,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextTertiary,
+                )
             }
-            Spacer(Modifier.width(6.dp))
-            CircleIcon(
-                icon = if (state.paused) PhosphorIcons.Fill.Play else PhosphorIcons.Fill.Pause,
-                onClick = onTogglePause,
-            )
-            Spacer(Modifier.width(6.dp))
+            if (state.phase != Phase.FINISHED) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable(onClick = onSkipExercise)
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        PhosphorIcons.Fill.SkipForward,
+                        contentDescription = null,
+                        tint = TextPrimary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("Skip", style = MaterialTheme.typography.labelLarge, color = TextPrimary)
+                }
+                Spacer(Modifier.width(6.dp))
+                CircleIcon(
+                    icon = if (state.paused) PhosphorIcons.Fill.Play else PhosphorIcons.Fill.Pause,
+                    onClick = onTogglePause,
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            CircleIcon(icon = PhosphorIcons.Fill.X, onClick = onQuit)
         }
-        CircleIcon(icon = PhosphorIcons.Fill.X, onClick = onQuit)
+
+        if (state.phase != Phase.FINISHED) {
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (exercise != null) Tag("Set ${state.setIndex + 1} van ${exercise.sets}")
+                Text(
+                    text = "${state.dayTitle} · ${formatClock(state.totalElapsed)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextTertiary,
+                )
+            }
+        }
     }
 }
 
@@ -302,16 +367,21 @@ private fun CircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, on
     }
 }
 
+/**
+ * Alleen het getal. Verder niets, zodat je in één oogopslag ziet wat je moet
+ * doen. Het getal is je doel: wat je bij de vorige set (of de vorige training)
+ * deed plus één. Gaat de oefening per kant, dan staat erboven welke kant.
+ */
 @Composable
 private fun WorkContent(state: SessionUiState, modifier: Modifier = Modifier) {
     val exercise = state.exercise ?: return
     val countdown = state.countdownLeft
-
-    val bigText = if (countdown != null) formatDuration(countdown) else exercise.target.shortLabel()
-    val unitLabel = when {
-        countdown != null -> "SECONDEN"
-        exercise.target.perSide -> "HERHALINGEN PER KANT"
-        else -> "HERHALINGEN"
+    val goal = state.goal
+    val side = state.currentSide
+    val bigText = when {
+        countdown != null -> formatDuration(countdown)
+        goal != null -> "${goal.target}"
+        else -> exercise.target.shortLabel()
     }
 
     Column(
@@ -319,66 +389,108 @@ private fun WorkContent(state: SessionUiState, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        if (side != null) {
+            SideSwitch(active = side)
+            Spacer(Modifier.height(18.dp))
+        }
         Text(
             text = bigText,
             style = MaterialTheme.typography.displayLarge.copy(
-                fontSize = if (bigText.length <= 3) 128.sp else 96.sp,
-                lineHeight = if (bigText.length <= 3) 128.sp else 96.sp,
+                fontSize = if (bigText.length <= 3) 148.sp else 108.sp,
+                lineHeight = if (bigText.length <= 3) 148.sp else 108.sp,
             ),
             color = Accent,
             textAlign = TextAlign.Center,
         )
-        Text(
-            text = unitLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = Accent,
-        )
-
-        Spacer(Modifier.height(28.dp))
-        Text(
-            text = exercise.name,
-            style = MaterialTheme.typography.headlineLarge,
-            color = TextPrimary,
-            textAlign = TextAlign.Center,
-        )
-        if (exercise.hint != null) {
-            Spacer(Modifier.height(4.dp))
-            Text(exercise.hint, style = MaterialTheme.typography.bodyLarge, color = TextTertiary)
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Tag("Set ${state.setIndex + 1} van ${exercise.sets}")
-
-        Spacer(Modifier.height(28.dp))
-        // Dikke balk als voortgang binnen deze oefening.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.62f)
-                .height(12.dp)
-                .clip(RoundedCornerShape(50))
-                .background(Surface2),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(
-                        if (countdown != null) {
-                            1f - countdown / exercise.target.max.toFloat()
-                        } else {
-                            (state.setIndex + 1) / exercise.sets.toFloat()
-                        }
-                    )
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(AccentBrush),
+        if (side != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "per kant",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextTertiary,
             )
         }
-
-        Spacer(Modifier.height(24.dp))
+        val weight = goal?.targetWeight?.takeIf { exercise.weighted }
+        if (weight != null) {
+            Spacer(Modifier.height(10.dp))
+            Tag("${formatKg(weight)} kg per dumbbell")
+        }
+        if (goal != null) {
+            Spacer(Modifier.height(if (weight != null) 10.dp else 6.dp))
+            Text(
+                text = buildString {
+                    append("${goal.source.label} ${goal.previous}")
+                    if (exercise.target.unit == MeasureUnit.SECONDS) append(" sec")
+                    goal.previousWeight?.let { append(" met ${formatKg(it)} kg") }
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+            )
+            // Reps op het maximum uit het schema: dan wordt het tijd voor zwaarder.
+            if (goal.steppedUp) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Repbereik vol — pak de zwaardere dumbbell",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AccentBright,
+                )
+            }
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
-            text = if (state.paused) "Gepauzeerd" else "Tik op het scherm als je klaar bent",
+            text = when {
+                state.paused -> "Gepauzeerd"
+                side == Side.RIGHT -> "Tik als rechts klaar is — dan links"
+                side == Side.LEFT -> "Tik als links ook klaar is"
+                else -> "Tik op het scherm als je klaar bent"
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = if (state.paused) Accent else TextTertiary,
+            textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Rechts en links naast elkaar, in de volgorde waarin je ze doet: de kant die
+ * aan de beurt is oranje, de kant die je al gehad hebt met een vinkje. Zo zie je
+ * niet alleen wélke kant je doet, maar ook of de andere nog komt of al was.
+ */
+@Composable
+private fun SideSwitch(active: Side) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Side.entries.forEach { side ->
+            val on = side == active
+            val done = !on && side.ordinal < active.ordinal
+            val shape = RoundedCornerShape(50)
+            Row(
+                modifier = Modifier
+                    .clip(shape)
+                    .background(if (on) Color(0xFF4A2210) else Surface1)
+                    .border(1.dp, if (on) Accent else Hairline, shape)
+                    .padding(horizontal = 22.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (done) {
+                    Icon(
+                        PhosphorIcons.Fill.Check,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+                Text(
+                    text = side.label.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = when {
+                        on -> AccentBright
+                        done -> TextSecondary
+                        else -> TextTertiary
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -388,53 +500,58 @@ private fun RestContent(
     modifier: Modifier = Modifier,
     onAnswer: (Int) -> Unit,
     onCustom: () -> Unit,
+    onWeightStep: (Double) -> Unit = {},
+    onPickWeight: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            RestRing(
-                progress = if (state.restTotal == 0) 0f else state.restLeft / state.restTotal.toFloat(),
-                modifier = Modifier.size(190.dp),
+        Text(
+            text = when {
+                state.restTotal == 0 -> "LAATSTE SET"
+                state.restLeft > 0 -> "PAUZE"
+                else -> "KLAAR"
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = Accent,
+        )
+        // Na de laatste set staat er geen klok meer te lopen; alleen nog de vraag.
+        if (state.restTotal > 0) {
+            Text(
+                text = formatDuration(state.restLeft),
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 96.sp, lineHeight = 96.sp),
+                color = TextPrimary,
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = if (state.restLeft > 0) "PAUZE" else "KLAAR",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Accent,
-                )
-                Text(
-                    text = formatDuration(state.restLeft),
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 52.sp),
-                    color = TextPrimary,
-                )
-            }
         }
 
         Spacer(Modifier.height(26.dp))
 
         val question = state.question
         if (question != null) {
-            QuestionCard(question = question, onAnswer = onAnswer, onCustom = onCustom)
+            QuestionCard(
+                question = question,
+                onAnswer = onAnswer,
+                onCustom = onCustom,
+                onWeightStep = onWeightStep,
+                onPickWeight = onPickWeight,
+            )
         } else {
-            AnimatedVisibility(visible = true) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Hierna", style = MaterialTheme.typography.labelSmall, color = TextTertiary)
-                    Spacer(Modifier.height(4.dp))
-                    val upcoming = if (state.setIndex + 1 < (state.exercise?.sets ?: 0)) {
-                        "${state.exercise?.name} · set ${state.setIndex + 2}"
-                    } else {
-                        state.next?.name ?: "Laatste set — bijna klaar"
-                    }
-                    Text(
-                        text = upcoming,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary,
-                        textAlign = TextAlign.Center,
-                    )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Hierna", style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+                Spacer(Modifier.height(4.dp))
+                val upcoming = if (state.setIndex + 1 < (state.exercise?.sets ?: 0)) {
+                    "${state.exercise?.name} · set ${state.setIndex + 2}"
+                } else {
+                    state.next?.name ?: "Laatste set — bijna klaar"
                 }
+                Text(
+                    text = upcoming,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TextPrimary,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
@@ -445,6 +562,8 @@ private fun QuestionCard(
     question: PendingQuestion,
     onAnswer: (Int) -> Unit,
     onCustom: () -> Unit,
+    onWeightStep: (Double) -> Unit = {},
+    onPickWeight: () -> Unit = {},
 ) {
     val shape = RoundedCornerShape(20.dp)
     Column(
@@ -457,19 +576,36 @@ private fun QuestionCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = if (question.exercise.target.unit == MeasureUnit.SECONDS) {
-                "Hoeveel seconden hield je vol?"
-            } else {
-                "Hoeveel herhalingen deed je?"
+            text = when {
+                question.exercise.target.unit == MeasureUnit.SECONDS && question.perSide ->
+                    "Hoeveel seconden per kant?"
+
+                question.exercise.target.unit == MeasureUnit.SECONDS -> "Hoeveel seconden hield je vol?"
+                question.perSide -> "Hoeveel herhalingen per kant?"
+                else -> "Hoeveel herhalingen deed je?"
             },
             style = MaterialTheme.typography.titleLarge,
             color = TextPrimary,
+            textAlign = TextAlign.Center,
         )
         Text(
-            text = question.exercise.name + if (question.exercise.target.perSide) " (per kant)" else "",
+            text = question.exercise.name + if (question.perSide) " · links en rechts" else "",
             style = MaterialTheme.typography.bodyMedium,
             color = TextTertiary,
+            textAlign = TextAlign.Center,
         )
+
+        // Bij dumbbells staat het gewicht boven de reps: eerst instellen, dan tikken.
+        val weight = question.weightKg
+        if (weight != null) {
+            Spacer(Modifier.height(14.dp))
+            WeightPicker(
+                weightKg = weight,
+                onStep = onWeightStep,
+                onPick = onPickWeight,
+            )
+        }
+
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             question.options.forEach { option ->
@@ -509,32 +645,73 @@ private fun QuestionCard(
     }
 }
 
+/**
+ * De kg per dumbbell: min, het getal, plus. Het getal zelf is aan te tikken voor
+ * een gewicht dat niet op de stapjes van 2,5 kg valt.
+ */
 @Composable
-private fun RestRing(progress: Float, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val stroke = 12.dp.toPx()
-        val diameter = size.minDimension - stroke
-        val topLeft = androidx.compose.ui.geometry.Offset(
-            (size.width - diameter) / 2f,
-            (size.height - diameter) / 2f,
+private fun WeightPicker(
+    weightKg: Double,
+    onStep: (Double) -> Unit,
+    onPick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "KG PER DUMBBELL",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextTertiary,
         )
-        drawArc(
-            color = Surface2,
-            startAngle = -90f,
-            sweepAngle = 360f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = Size(diameter, diameter),
-            style = Stroke(width = stroke, cap = StrokeCap.Round),
-        )
-        drawArc(
-            color = Accent,
-            startAngle = -90f,
-            sweepAngle = 360f * progress.coerceIn(0f, 1f),
-            useCenter = false,
-            topLeft = topLeft,
-            size = Size(diameter, diameter),
-            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StepButton(text = "− ${formatKg(WEIGHT_STEP_KG)}", enabled = weightKg > 0.0) {
+                onStep(-WEIGHT_STEP_KG)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .background(Surface2)
+                    .border(1.dp, Hairline, shape)
+                    .clickable(onClick = onPick)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (weightKg <= 0.0) "geen" else "${formatKg(weightKg)} kg",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (weightKg <= 0.0) TextTertiary else AccentBright,
+                )
+            }
+            StepButton(text = "+ ${formatKg(WEIGHT_STEP_KG)}", enabled = true) { onStep(WEIGHT_STEP_KG) }
+        }
+    }
+}
+
+@Composable
+private fun StepButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .width(78.dp)
+            .height(52.dp)
+            .clip(shape)
+            .background(Surface2)
+            .border(1.dp, Hairline, shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleLarge,
+            color = if (enabled) TextPrimary else TextTertiary,
         )
     }
 }
@@ -572,6 +749,14 @@ private fun FinishedContent(state: SessionUiState, modifier: Modifier = Modifier
                     color = TextSecondary,
                 )
             }
+            if (summary.volumeKg > 0.0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "${formatKg(summary.volumeKg)} kg getild (kg × reps)",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                )
+            }
         }
     }
 }
@@ -587,7 +772,7 @@ private fun SummaryStat(value: String, label: String) {
 @Composable
 private fun SessionBottomBar(
     state: SessionUiState,
-    onSkipExercise: () -> Unit,
+    onAddRest: (Int) -> Unit,
     onSkipRest: () -> Unit,
     onExit: () -> Unit,
 ) {
@@ -597,9 +782,16 @@ private fun SessionBottomBar(
         Phase.REST -> Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            SkipButton(
+            // Na de laatste set is er geen pauze meer om te verlengen.
+            if (!state.isFinalSet) {
+                PillButton(text = "+ 1 min", accent = true, onClick = { onAddRest(60) })
+                Spacer(Modifier.width(10.dp))
+            }
+            PillButton(
                 text = if (state.question != null) "Pauze overslaan" else "Verder",
+                icon = PhosphorIcons.Fill.SkipForward,
                 onClick = onSkipRest,
             )
         }
@@ -609,19 +801,30 @@ private fun SessionBottomBar(
 }
 
 @Composable
-private fun SkipButton(text: String, onClick: () -> Unit) {
+private fun PillButton(
+    text: String,
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    accent: Boolean = false,
+) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(Surface1)
-            .border(1.dp, Hairline, RoundedCornerShape(50))
+            .border(1.dp, if (accent) Accent else Hairline, RoundedCornerShape(50))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-        Icon(PhosphorIcons.Fill.SkipForward, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (accent) AccentBright else TextSecondary,
+        )
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+        }
     }
 }
 
@@ -665,6 +868,54 @@ private fun CustomValueDialog(
                 onClick = { text.toIntOrNull()?.let(onConfirm) },
                 enabled = text.toIntOrNull() != null,
             ) { Text("Opslaan", color = Accent) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuleren", color = TextSecondary) }
+        },
+    )
+}
+
+@Composable
+private fun WeightDialog(
+    initial: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit,
+) {
+    var text by remember { mutableStateOf(formatKg(initial)) }
+    val value = text.replace(',', '.').toDoubleOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface1,
+        title = {
+            Text(
+                text = "Kg per dumbbell",
+                style = MaterialTheme.typography.headlineMedium,
+                color = TextPrimary,
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { new -> text = new.filter { it.isDigit() || it == ',' || it == '.' }.take(5) },
+                singleLine = true,
+                label = { Text("kg", color = TextTertiary) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Surface2,
+                    unfocusedContainerColor = Surface2,
+                    focusedIndicatorColor = Accent,
+                    unfocusedIndicatorColor = Hairline,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    cursorColor = Accent,
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { value?.let(onConfirm) }, enabled = value != null) {
+                Text("Opslaan", color = Accent)
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Annuleren", color = TextSecondary) }

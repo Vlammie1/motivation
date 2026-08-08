@@ -23,6 +23,11 @@ val TextTertiary = Color(0xFF6B6B72)
 
 val Danger = Color(0xFFE0483C)
 
+// Macro's — eiwit houdt het accent, koolhydraten en vet krijgen hun eigen tint.
+val ProteinTint = Accent
+val CarbTint = Color(0xFF4C8DFF)
+val FatTint = Color(0xFFE8C33B)
+
 val AccentBrush = Brush.horizontalGradient(
     listOf(Color(0xFFFF8F2E), Color(0xFFD3321A)),
 )

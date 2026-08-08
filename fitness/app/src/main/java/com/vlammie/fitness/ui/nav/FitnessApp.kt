@@ -45,6 +45,7 @@ import com.vlammie.fitness.ui.meals.MealsScreen
 import com.vlammie.fitness.ui.progress.ProgressScreen
 import com.vlammie.fitness.ui.session.SessionScreen
 import com.vlammie.fitness.ui.settings.SettingsScreen
+import com.vlammie.fitness.ui.settings.WorkoutEditorScreen
 import com.vlammie.fitness.ui.theme.Accent
 import com.vlammie.fitness.ui.theme.Hairline
 import com.vlammie.fitness.ui.theme.Ink
@@ -56,8 +57,11 @@ object Routes {
     const val MEALS = "meals"
     const val SETTINGS = "settings"
     const val SESSION = "session/{dayId}"
+    const val WORKOUT = "workout/{dayId}"
 
     fun session(dayId: String) = "session/$dayId"
+
+    fun workout(dayId: String) = "workout/$dayId"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -74,7 +78,7 @@ fun FitnessApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute != Routes.SESSION
+    val showBottomBar = currentRoute != Routes.SESSION && currentRoute != Routes.WORKOUT
 
     Scaffold(
         containerColor = Ink,
@@ -100,11 +104,21 @@ fun FitnessApp() {
             }
             composable(Routes.PROGRESS) { ProgressScreen() }
             composable(Routes.MEALS) { MealsScreen() }
-            composable(Routes.SETTINGS) { SettingsScreen() }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    onEditWorkout = { dayId -> navController.navigate(Routes.workout(dayId)) },
+                )
+            }
             composable(Routes.SESSION) { entry ->
                 SessionScreen(
                     dayId = entry.arguments?.getString("dayId").orEmpty(),
                     onExit = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.WORKOUT) { entry ->
+                WorkoutEditorScreen(
+                    dayId = entry.arguments?.getString("dayId").orEmpty(),
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

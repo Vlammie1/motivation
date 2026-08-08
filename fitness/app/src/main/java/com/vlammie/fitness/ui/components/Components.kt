@@ -157,10 +157,16 @@ fun BigActionButton(
             .fillMaxWidth()
             .height(60.dp)
             .clip(shape)
-            .background(if (enabled) AccentBrush else Brush.horizontalGradient(listOf(Surface3, Surface3)))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
+        // De vulling krijgt korrel; het label zelf blijft scherp.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .filmGrain(0.07f)
+                .background(if (enabled) AccentBrush else Brush.horizontalGradient(listOf(Surface3, Surface3)))
+        )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (icon != null) {
                 Icon(icon, contentDescription = null, tint = if (enabled) TextPrimary else TextTertiary, modifier = Modifier.size(22.dp))

@@ -18,14 +18,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -46,6 +49,8 @@ import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.fill.ArrowDown
 import com.adamglin.phosphoricons.fill.ArrowUp
 import com.adamglin.phosphoricons.fill.CaretDown
+import com.adamglin.phosphoricons.fill.X
+import com.vlammie.fitness.data.db.WeighInEntity
 import com.vlammie.fitness.ui.components.FitCard
 import com.vlammie.fitness.ui.components.PillTabs
 import com.vlammie.fitness.ui.components.SectionHeader
@@ -53,6 +58,7 @@ import com.vlammie.fitness.ui.components.SecondaryButton
 import com.vlammie.fitness.ui.components.StatTile
 import com.vlammie.fitness.ui.theme.Accent
 import com.vlammie.fitness.ui.theme.AccentBright
+import com.vlammie.fitness.ui.theme.Danger
 import com.vlammie.fitness.ui.theme.Hairline
 import com.vlammie.fitness.ui.theme.Ink
 import com.vlammie.fitness.ui.theme.Surface1
@@ -76,6 +82,9 @@ fun ProgressScreen(
         onSelectExercise = viewModel::selectExercise,
         onSelectPoint = viewModel::selectPoint,
         onLogWeight = viewModel::logWeight,
+        onUpdateWeight = viewModel::updateWeight,
+        onDeleteWeight = viewModel::deleteWeight,
+        onDeleteSession = viewModel::deleteSession,
     )
 }
 
@@ -88,8 +97,12 @@ internal fun ProgressContent(
     onSelectExercise: (String) -> Unit,
     onSelectPoint: (Int?) -> Unit,
     onLogWeight: (Double) -> Unit,
+    onUpdateWeight: (LocalDate, Double) -> Unit = { _, _ -> },
+    onDeleteWeight: (LocalDate) -> Unit = {},
+    onDeleteSession: (Long) -> Unit = {},
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var editingWeight by remember { mutableStateOf<WeighInEntity?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val pickerState = rememberModalBottomSheetState()
 
@@ -106,6 +119,23 @@ internal fun ProgressContent(
         item { SummaryCard(state, onRange) }
 
         item { CheckInCard(state.latestWeight, onLogWeight) }
+
+        if (state.weighIns.isNotEmpty()) {
+            item {
+                SectionHeader(
+                    title = "Wegingen",
+                    action = "${state.weighIns.size}",
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+            items(state.weighIns, key = { it.date }) { weighIn ->
+                WeighInRow(
+                    weighIn = weighIn,
+                    onClick = { editingWeight = weighIn },
+                    onDelete = { onDeleteWeight(LocalDate.ofEpochDay(weighIn.date)) },
+                )
+            }
+        }
 
         item {
             SectionHeader(
@@ -125,7 +155,7 @@ internal fun ProgressContent(
         if (state.series?.id != WEIGHT_ID) {
             item {
                 PillTabs(
-                    options = listOf("Beste set", "Totaal"),
+                    options = state.metricLabels,
                     selectedIndex = state.metricIndex,
                     onSelect = onMetric,
                 )
@@ -142,8 +172,29 @@ internal fun ProgressContent(
             sheetState = sheetState,
             containerColor = Surface1,
         ) {
-            DayDetailSheet(detail)
+            DayDetailSheet(
+                detail = detail,
+                onDeleteSession = onDeleteSession,
+                onDeleteWeighIn = { onDeleteWeight(detail.date) },
+            )
         }
+    }
+
+    val weighIn = editingWeight
+    if (weighIn != null) {
+        WeightDialog(
+            initial = weighIn.kg,
+            date = LocalDate.ofEpochDay(weighIn.date),
+            onDismiss = { editingWeight = null },
+            onConfirm = { kg ->
+                editingWeight = null
+                onUpdateWeight(LocalDate.ofEpochDay(weighIn.date), kg)
+            },
+            onDelete = {
+                editingWeight = null
+                onDeleteWeight(LocalDate.ofEpochDay(weighIn.date))
+            },
+        )
     }
 
     if (showPicker) {
@@ -296,6 +347,12 @@ private fun ChartCard(state: ProgressUiState, onSelectPoint: (Int?) -> Unit) {
             )
         }
 
+        val note = state.metricNote
+        if (note != null) {
+            Spacer(Modifier.height(10.dp))
+            Text(note, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+        }
+
         Spacer(Modifier.height(8.dp))
         Text(
             text = "Tik op een punt voor de details van die dag.",
@@ -314,7 +371,108 @@ private fun Legend(color: Color, label: String) {
 }
 
 @Composable
-internal fun DayDetailSheet(detail: DayDetail) {
+private fun WeighInRow(weighIn: WeighInEntity, onClick: () -> Unit, onDelete: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface1)
+            .border(1.dp, Hairline, shape)
+            .clickable(onClick = onClick)
+            .padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "%.1f kg".format(weighIn.kg),
+                style = MaterialTheme.typography.titleLarge,
+                color = TextPrimary,
+            )
+            Text(
+                text = dutchDate(LocalDate.ofEpochDay(weighIn.date)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextTertiary,
+            )
+        }
+        Text("Aanpassen", style = MaterialTheme.typography.labelLarge, color = Accent)
+        Icon(
+            imageVector = PhosphorIcons.Fill.X,
+            contentDescription = "Verwijderen",
+            tint = Danger,
+            modifier = Modifier
+                .size(30.dp)
+                .clip(RoundedCornerShape(50))
+                .clickable(onClick = onDelete)
+                .padding(7.dp),
+        )
+    }
+}
+
+@Composable
+private fun WeightDialog(
+    initial: Double,
+    date: LocalDate,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit,
+    onDelete: () -> Unit,
+) {
+    var text by remember { mutableStateOf(initial.toString()) }
+    val value = text.replace(',', '.').toDoubleOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface1,
+        title = { Text("Weging aanpassen", style = MaterialTheme.typography.headlineMedium, color = TextPrimary) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(dutchDate(date), style = MaterialTheme.typography.bodyMedium, color = TextTertiary)
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { new -> text = new.filter { it.isDigit() || it == '.' || it == ',' }.take(5) },
+                    singleLine = true,
+                    label = { Text("kg", color = TextTertiary) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Surface2,
+                        unfocusedContainerColor = Surface2,
+                        focusedIndicatorColor = Accent,
+                        unfocusedIndicatorColor = Hairline,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = Accent,
+                    ),
+                )
+                Text(
+                    text = "Deze weging verwijderen",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Danger,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onDelete)
+                        .padding(vertical = 6.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { value?.let(onConfirm) }, enabled = value != null) {
+                Text("Opslaan", color = Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuleren", color = TextSecondary) }
+        },
+    )
+}
+
+@Composable
+internal fun DayDetailSheet(
+    detail: DayDetail,
+    onDeleteSession: (Long) -> Unit = {},
+    onDeleteWeighIn: () -> Unit = {},
+) {
     Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 36.dp)) {
         Text(
             text = dutchDate(detail.date).uppercase(),
@@ -343,6 +501,10 @@ internal fun DayDetailSheet(detail: DayDetail) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextTertiary,
                     )
+                    // Bij dumbbells: waar dat getal vandaan komt, inclusief de kilo's.
+                    entry.note?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    }
                 }
                 val delta = entry.delta
                 if (delta != null && delta != 0f) {
@@ -371,6 +533,35 @@ internal fun DayDetailSheet(detail: DayDetail) {
                         text = if (delta == null) "eerste keer" else "gelijk",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextTertiary,
+                    )
+                }
+            }
+        }
+
+        // Verkeerd gelogd? Hier haal je de hele dag weer weg.
+        if (detail.sessionIds.isNotEmpty() || detail.hasWeighIn) {
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                if (detail.sessionIds.isNotEmpty()) {
+                    Text(
+                        text = if (detail.sessionIds.size == 1) "Training verwijderen" else "Trainingen verwijderen",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Danger,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { detail.sessionIds.forEach(onDeleteSession) }
+                            .padding(vertical = 8.dp),
+                    )
+                }
+                if (detail.hasWeighIn) {
+                    Text(
+                        text = "Weging verwijderen",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Danger,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable(onClick = onDeleteWeighIn)
+                            .padding(vertical = 8.dp),
                     )
                 }
             }

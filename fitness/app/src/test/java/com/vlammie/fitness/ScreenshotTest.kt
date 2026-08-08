@@ -20,12 +20,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vlammie.fitness.data.db.ExtraFoodEntity
-import com.vlammie.fitness.data.model.DayPlan
+import com.vlammie.fitness.data.model.FoodEntry
+import com.vlammie.fitness.data.model.GoalSource
+import com.vlammie.fitness.data.model.Moment
+import com.vlammie.fitness.data.model.Product
 import com.vlammie.fitness.data.model.Program
 import com.vlammie.fitness.data.model.Route
+import com.vlammie.fitness.data.model.Serving
+import com.vlammie.fitness.data.model.SetGoal
+import com.vlammie.fitness.data.model.Side
 import com.vlammie.fitness.ui.home.HomeContent
 import com.vlammie.fitness.ui.home.HomeUiState
+import com.vlammie.fitness.ui.home.LoggedExercise
 import com.vlammie.fitness.ui.home.NutritionSummary
 import com.vlammie.fitness.ui.home.upcomingDays
 import com.vlammie.fitness.ui.meals.MealsContent
@@ -48,6 +54,7 @@ import com.vlammie.fitness.ui.session.SessionSummary
 import com.vlammie.fitness.ui.session.SessionUiState
 import com.vlammie.fitness.ui.settings.SettingsContent
 import com.vlammie.fitness.ui.settings.SettingsUiState
+import com.vlammie.fitness.ui.settings.WorkoutEditorContent
 import com.vlammie.fitness.ui.theme.FitnessTheme
 import com.vlammie.fitness.ui.theme.Ink
 import com.vlammie.fitness.ui.theme.Surface1
@@ -105,21 +112,37 @@ class ScreenshotTest {
     }
 
     @Test
+    fun sessionPerSide() = capture("10-sessie-links-rechts") {
+        SessionContent(
+            state = perSideState(),
+            onTap = {},
+            onQuit = {},
+            onTogglePause = {},
+            onAnswer = {},
+            onCustom = {},
+            onSkipExercise = {},
+            onSkipRest = {},
+            onExit = {},
+        )
+    }
+
+    @Test
     fun sessionRest() = capture("03-sessie-pauze") {
         val day = Program.day(Route.A, "a4")!!
         SessionContent(
             state = sessionState().copy(
                 phase = Phase.REST,
                 setIndex = 1,
-                restTotal = 60,
-                restLeft = 38,
+                restTotal = 120,
+                restLeft = 78,
                 completedSets = 2,
                 totalElapsed = 154,
                 question = PendingQuestion(
                     exercise = day.exercises[0],
                     setIndex = 1,
-                    options = listOf(9, 10, 11, 12),
-                    default = 10,
+                    options = listOf(12, 13, 14, 15),
+                    default = 13,
+                    weightKg = 12.5,
                 ),
             ),
             onTap = {},
@@ -140,7 +163,13 @@ class ScreenshotTest {
                 phase = Phase.FINISHED,
                 completedSets = 17,
                 totalElapsed = 2_280,
-                summary = SessionSummary(durationSec = 2_280, sets = 17, totalReps = 214, totalSeconds = 0),
+                summary = SessionSummary(
+                    durationSec = 2_280,
+                    sets = 17,
+                    totalReps = 214,
+                    totalSeconds = 0,
+                    volumeKg = 1_720.0,
+                ),
             ),
             onTap = {},
             onQuit = {},
@@ -190,14 +219,7 @@ class ScreenshotTest {
     @Test
     fun meals() = capture("07-voeding") {
         WithBottomBar(Routes.MEALS) {
-            MealsContent(
-                state = mealsState(),
-                onShiftDate = {},
-                onToggleMeal = { _, _ -> },
-                onAddWater = {},
-                onAddExtra = { _, _, _ -> },
-                onRemoveExtra = {},
-            )
+            MealsContent(state = mealsState())
         }
     }
 
@@ -205,22 +227,51 @@ class ScreenshotTest {
     fun settings() = capture("08-instellingen") {
         WithBottomBar(Routes.SETTINGS) {
             SettingsContent(
-                state = SettingsUiState(route = Route.A, restFeedback = true),
+                state = SettingsUiState(
+                    route = Route.A,
+                    restFeedback = true,
+                    days = Program.allDays,
+                ),
                 onRoute = {},
                 onRestFeedback = {},
             )
         }
     }
 
+    @Test
+    fun workoutEditor() = capture("09-workout-aanpassen") {
+        WorkoutEditorContent(
+            day = Program.day(Route.A, "a1"),
+            canReset = true,
+            onBack = {},
+            onEdit = {},
+            onMove = { _, _ -> },
+            onRemove = {},
+            onUpsert = { _, _ -> },
+            onSave = {},
+            onDelete = {},
+            onReset = {},
+        )
+    }
+
     // ---- voorbeelddata ---------------------------------------------
 
     private fun homeState() = HomeUiState(
+        today = today,
         date = today,
         route = Route.A,
+        days = Program.allDays,
         plan = Program.planFor(Route.A, today.dayOfWeek),
         checked = setOf("db_rdl", "bulgarian_split_squat"),
         sessionsToday = 0,
         sessionsThisWeek = 3,
+        logged = listOf(
+            LoggedExercise(
+                name = "Dumbbell Romanian Deadlifts",
+                values = listOf(12, 12, 11, 10),
+                weights = listOf(12.5, 12.5, 12.5, 12.5),
+            ),
+        ),
         nutrition = NutritionSummary(kcal = 2000, protein = 78, waterMl = 1750),
         upcoming = upcomingDays(Route.A, today),
     )
@@ -237,6 +288,38 @@ class ScreenshotTest {
             workElapsed = 12,
             completedSets = 1,
             totalElapsed = 96,
+            // Set 1 zat er net op met 11 reps, dus set 2 vraagt er 12 — het doel
+            // komt van de vórige set, niet van de vorige training.
+            goals = mapOf(
+                "db_rdl" to mapOf(
+                    0 to SetGoal(12, 10, 12.5, 15.0),
+                    1 to SetGoal(11, 12, 12.5, 12.5, GoalSource.LAST_SET),
+                    2 to SetGoal(11, 12, 12.5, 12.5),
+                    3 to SetGoal(10, 11, 12.5, 12.5),
+                ),
+            ),
+        )
+    }
+
+    /** Bulgarian Split Squats: eerst rechts, dan links, zonder pauze ertussen. */
+    private fun perSideState(): SessionUiState {
+        val day = Program.day(Route.A, "a4")!!
+        return SessionUiState(
+            dayTitle = day.title,
+            focus = day.focus,
+            exercises = day.exercises,
+            exerciseIndex = 1,
+            setIndex = 1,
+            phase = Phase.WORK,
+            workElapsed = 8,
+            completedSets = 5,
+            totalElapsed = 640,
+            side = Side.LEFT,
+            goals = mapOf(
+                "bulgarian_split_squat" to mapOf(
+                    1 to SetGoal(11, 12, source = GoalSource.LAST_SET),
+                ),
+            ),
         )
     }
 
@@ -267,7 +350,7 @@ class ScreenshotTest {
                 best = 19f,
                 last = 19f,
             ),
-            metricIndex = 0,
+            metricIndex = 2,
             rangeIndex = 1,
             selectedPoint = 6,
             detail = null,
@@ -283,20 +366,28 @@ class ScreenshotTest {
         title = "Bovenlichaam A",
         entries = listOf(
             DayDetailEntry("Push-ups", 18f, "reps", 2f),
-            DayDetailEntry("Dumbbell Shoulder Press", 12f, "reps", 1f),
-            DayDetailEntry("Dumbbell Floor Press", 11f, "reps", 0f),
-            DayDetailEntry("Tricep Overhead Extension", 14f, "reps", -1f),
-            DayDetailEntry("Dumbbell Lateral Raises", 15f, "reps", null),
+            DayDetailEntry("Dumbbell Shoulder Press", 450f, "kg·reps", 62f, "3 sets · 36 reps · 12,5 kg"),
+            DayDetailEntry("Dumbbell Floor Press", 495f, "kg·reps", 0f, "3 sets · 33 reps · 15 kg"),
+            DayDetailEntry("Tricep Overhead Extension", 280f, "kg·reps", -20f, "3 sets · 40 reps · 7,5 kg"),
+            DayDetailEntry("Dumbbell Lateral Raises", 225f, "kg·reps", null, "3 sets · 45 reps · 5 kg"),
         ),
     )
 
     private fun mealsState() = MealsUiState(
         date = today,
-        doneMeals = setOf("ontbijt", "tussendoor", "lunch", "preworkout"),
-        extras = listOf(
-            ExtraFoodEntity(id = 1, date = today.toEpochDay(), name = "Eiwitshake", kcal = 220, protein = 24),
+        entries = listOf(
+            FoodEntry(1, 1, "Havermout", 100.0, false, null, 375, 14, 58, 7, Moment.BREAKFAST),
+            FoodEntry(2, 2, "Volle melk", 300.0, false, null, 192, 10, 14, 11, Moment.BREAKFAST),
+            FoodEntry(3, 3, "Banaan", 2.0, true, "banaan", 210, 3, 54, 1, Moment.BREAKFAST),
+            FoodEntry(4, 4, "Griekse yoghurt · AH", 250.0, false, null, 243, 10, 10, 18, Moment.LUNCH),
+            FoodEntry(5, 5, "Ei", 3.0, true, "ei", 234, 19, 2, 16, Moment.LUNCH),
+        ),
+        products = listOf(
+            Product(1, "Havermout", null, Serving.PER_100G, null, 375.0, 13.5, 58.0, 7.0),
+            Product(3, "Banaan", null, Serving.PIECE, "banaan", 105.0, 1.3, 27.0, 0.4),
         ),
         waterMl = 1750,
+        moment = Moment.LUNCH,
     )
 
     // ---- helpers ---------------------------------------------------

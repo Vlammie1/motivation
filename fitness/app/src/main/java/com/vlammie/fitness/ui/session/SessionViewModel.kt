@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.vlammie.fitness.FitnessApplication
 import com.vlammie.fitness.data.model.Exercise
+import com.vlammie.fitness.data.model.GoalSource
 import com.vlammie.fitness.data.model.Program
+import com.vlammie.fitness.data.model.SetGoal
+import com.vlammie.fitness.data.model.Side
 import com.vlammie.fitness.data.model.Unit as MeasureUnit
 import com.vlammie.fitness.data.repo.FitnessRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -14,27 +17,41 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 
 enum class Phase { WORK, REST, FINISHED }
 
-/** De vraag "hoeveel heb je er gedaan?" die tijdens de pauze verschijnt. */
+/**
+ * De vraag "hoeveel heb je er gedaan?" die tijdens de pauze verschijnt.
+ *
+ * [weightKg] is de kilo's per dumbbell die er nu onder staan; `null` bij een
+ * oefening zonder gewicht, en dan komt de kg-regel ook niet in beeld.
+ */
 data class PendingQuestion(
     val exercise: Exercise,
     val setIndex: Int,
     val options: List<Int>,
     val default: Int,
-)
+    val weightKg: Double? = null,
+) {
+    /** Bij links/rechts geldt het antwoord per kant, niet voor de hele set. */
+    val perSide: Boolean get() = exercise.perSide
+}
 
 data class SessionSummary(
     val durationSec: Int,
     val sets: Int,
     val totalReps: Int,
     val totalSeconds: Int,
+    /** Kilo's per dumbbell × herhalingen, over de hele sessie. */
+    val volumeKg: Double = 0.0,
 )
 
 data class SessionUiState(
@@ -52,16 +69,37 @@ data class SessionUiState(
     val completedSets: Int = 0,
     val totalElapsed: Int = 0,
     val summary: SessionSummary? = null,
+    /**
+     * Per oefening-id het doel per set-index: bij het starten afgeleid van je
+     * vorige training, en tijdens de sessie van de set die je net gelogd hebt.
+     */
+    val goals: Map<String, Map<Int, SetGoal>> = emptyMap(),
+    /** Welke helft van de set je doet bij een oefening die per kant gaat. */
+    val side: Side = Side.first,
 ) {
     val exercise: Exercise? get() = exercises.getOrNull(exerciseIndex)
     val next: Exercise? get() = exercises.getOrNull(exerciseIndex + 1)
     val totalSets: Int get() = exercises.sumOf { it.sets }
     val progress: Float get() = if (totalSets == 0) 0f else completedSets / totalSets.toFloat()
 
+    /** Het doel van de set waar je nu in zit, of `null` als er nog geen historie is. */
+    val goal: SetGoal? get() = exercise?.let { goals[it.id]?.get(setIndex) }
+
+    /** De kant die nu aan de beurt is, of `null` bij een oefening die niet per kant gaat. */
+    val currentSide: Side? get() = side.takeIf { exercise?.perSide == true }
+
+    /** De laatste set van de laatste oefening: hierna volgt geen pauze meer. */
+    val isFinalSet: Boolean
+        get() = exerciseIndex == exercises.lastIndex && setIndex == (exercise?.sets ?: 0) - 1
+
+    /** Waar de klok naartoe telt bij een oefening op tijd: je doel, anders het schema. */
+    val targetSeconds: Int?
+        get() = exercise?.takeIf { it.target.unit == MeasureUnit.SECONDS }
+            ?.let { goal?.target ?: it.target.max }
+
     /** Bij een oefening op tijd telt het scherm af in plaats van op. */
     val countdownLeft: Int?
-        get() = exercise?.takeIf { it.target.unit == MeasureUnit.SECONDS }
-            ?.let { (it.target.max - workElapsed).coerceAtLeast(0) }
+        get() = targetSeconds?.let { (it - workElapsed).coerceAtLeast(0) }
 }
 
 class SessionViewModel(
@@ -74,6 +112,7 @@ class SessionViewModel(
     private var loggedSets = 0
     private var totalReps = 0
     private var totalSeconds = 0
+    private var volumeKg = 0.0
 
     private val _state = MutableStateFlow(SessionUiState())
     val state = _state.asStateFlow()
@@ -86,19 +125,32 @@ class SessionViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     init {
-        val found = Program.findDay(dayId)
-        if (found != null) {
-            val (route, day) = found
+        viewModelScope.launch {
+            // Bij de allereerste start staat het schema nog in de database te landen,
+            // dus wachten we er even op voordat we terugvallen op het standaardplan.
+            val day = withTimeoutOrNull(5_000) { repo.workoutDay(dayId).filterNotNull().first() }
+                ?: Program.findDay(dayId)?.second
+
+            if (day == null) {
+                sessionId.complete(-1L)
+                _state.update { it.copy(phase = Phase.FINISHED) }
+                return@launch
+            }
+
             _state.value = SessionUiState(
                 dayTitle = day.title,
                 focus = day.focus,
                 exercises = day.exercises,
             )
-            viewModelScope.launch {
-                sessionId.complete(repo.startSession(date, route, day.id, day.title))
-            }
-        } else {
-            _state.update { it.copy(phase = Phase.FINISHED) }
+            sessionId.complete(repo.startSession(date, day.routeKey, day.id, day.title))
+
+            // Pas ná het aanmaken van de sessie, maar vóór de eerste gelogde set:
+            // zo kijken de doelen gegarandeerd naar de vórige training.
+            val goals = day.exercises
+                .distinctBy { it.id }
+                .associate { it.id to repo.goalsFor(it) }
+                .filterValues { it.isNotEmpty() }
+            _state.update { it.copy(goals = goals) }
         }
         startTicker()
     }
@@ -117,11 +169,9 @@ class SessionViewModel(
             Phase.WORK -> {
                 val elapsed = current.workElapsed + 1
                 _state.update { it.copy(workElapsed = elapsed, totalElapsed = it.totalElapsed + 1) }
-                val target = current.exercise?.target
                 // Oefeningen op tijd stoppen vanzelf wanneer de tijd om is.
-                if (target != null && target.unit == MeasureUnit.SECONDS && elapsed >= target.max) {
-                    completeSet()
-                }
+                val seconds = current.targetSeconds
+                if (seconds != null && elapsed >= seconds) completeSet()
             }
 
             Phase.REST -> {
@@ -144,45 +194,108 @@ class SessionViewModel(
         val exercise = current.exercise ?: return
         if (current.phase != Phase.WORK) return
 
-        val fallback = when (exercise.target.unit) {
-            MeasureUnit.SECONDS -> minOf(current.workElapsed.coerceAtLeast(1), exercise.target.max)
-            MeasureUnit.REPS -> exercise.target.suggested
+        // Een set per kant loopt in twee helften zonder pauze ertussen: eerst
+        // rechts, dan links. Pas na de tweede kant is de set klaar.
+        if (exercise.perSide && current.side == Side.first) {
+            _state.update { it.copy(side = it.side.other, workElapsed = 0) }
+            return
         }
+
+        val goal = current.goal?.target
+        val fallback = when (exercise.target.unit) {
+            MeasureUnit.SECONDS -> minOf(current.workElapsed.coerceAtLeast(1), current.targetSeconds ?: exercise.target.max)
+            MeasureUnit.REPS -> goal ?: exercise.target.suggested
+        }
+        // Na de allerlaatste set van de sessie hoef je nergens meer voor uit te rusten.
+        val rest = if (current.isFinalSet) 0 else exercise.restSeconds
 
         // Meteen naar de pauze, zodat een tweede tik (of tick) er niet nog een set van maakt.
         _state.update {
             it.copy(
                 phase = Phase.REST,
-                restTotal = exercise.restSeconds,
-                restLeft = exercise.restSeconds,
+                restTotal = rest,
+                restLeft = rest,
                 workElapsed = 0,
-                question = PendingQuestion(exercise, it.setIndex, listOf(fallback), fallback),
+                question = PendingQuestion(
+                    exercise = exercise,
+                    setIndex = it.setIndex,
+                    options = listOf(fallback),
+                    default = fallback,
+                    weightKg = current.goal?.targetWeight?.takeIf { _ -> exercise.weighted },
+                ),
             )
         }
 
         viewModelScope.launch {
-            val options = repo.quickOptions(exercise)
             val default = if (exercise.target.unit == MeasureUnit.SECONDS) {
                 fallback
             } else {
-                repo.lastValue(exercise.id) ?: fallback
+                goal ?: repo.lastValue(exercise.id) ?: fallback
             }
-            _state.update { it.copy(question = it.question?.copy(options = options, default = default)) }
+            val options = repo.quickOptions(exercise, default)
+            // Het gewicht van vorige keer staat al klaar, zodat je meestal alleen
+            // nog op je aantal herhalingen hoeft te tikken.
+            val weight = if (!exercise.weighted) {
+                null
+            } else {
+                _state.value.question?.weightKg ?: repo.lastWeight(exercise.id) ?: 0.0
+            }
+            _state.update {
+                it.copy(
+                    question = it.question?.copy(
+                        options = options,
+                        default = default,
+                        weightKg = weight,
+                    )
+                )
+            }
+        }
+    }
+
+    /** De min/plus-knopjes bij de kg tijdens de pauze. */
+    fun adjustWeight(delta: Double) = _state.update { state ->
+        val question = state.question ?: return@update state
+        val current = question.weightKg ?: return@update state
+        state.copy(question = question.copy(weightKg = (current + delta).coerceAtLeast(0.0)))
+    }
+
+    /** Een gewicht dat niet op de stapjes valt (7,5 · 11 · 13,5) zelf intikken. */
+    fun setWeight(kg: Double) = _state.update { state ->
+        val question = state.question ?: return@update state
+        state.copy(question = question.copy(weightKg = kg.coerceIn(0.0, 500.0)))
+    }
+
+    /** "+ 1 minuut" tijdens de pauze: soms is de standaardrust gewoon te kort. */
+    fun addRest(seconds: Int) {
+        if (_state.value.phase != Phase.REST) return
+        _state.update {
+            val left = it.restLeft + seconds
+            it.copy(restLeft = left, restTotal = maxOf(it.restTotal, left))
         }
     }
 
     /** Antwoord op de vraag tijdens de pauze. */
     fun answer(value: Int) {
         val question = _state.value.question ?: return
+        val weight = question.weightKg?.takeIf { it > 0.0 }
         viewModelScope.launch {
-            repo.logSet(sessionId.await(), date, question.exercise, question.setIndex, value)
+            val id = sessionId.await()
+            if (id > 0) repo.logSet(id, date, question.exercise, question.setIndex, value, weight)
             loggedSets++
             if (question.exercise.target.unit == MeasureUnit.SECONDS) {
                 totalSeconds += value
             } else {
                 totalReps += value
             }
-            _state.update { it.copy(question = null, completedSets = it.completedSets + 1) }
+            if (weight != null) volumeKg += weight * value
+            _state.update {
+                it.copy(
+                    question = null,
+                    completedSets = it.completedSets + 1,
+                    // Wat je net deed is meteen de lat voor de volgende set.
+                    goals = it.goals.withGoalAfter(question.exercise, question.setIndex, value, weight),
+                )
+            }
             if (_state.value.restLeft <= 0) advance()
         }
     }
@@ -206,6 +319,7 @@ class SessionViewModel(
                 restLeft = 0,
                 question = null,
                 completedSets = it.completedSets + remaining,
+                side = Side.first,
             )
         }
         if (_state.value.exerciseIndex >= _state.value.exercises.size) finish()
@@ -220,7 +334,13 @@ class SessionViewModel(
 
         if (nextSet < exercise.sets) {
             _state.update {
-                it.copy(setIndex = nextSet, phase = Phase.WORK, workElapsed = 0, restLeft = 0)
+                it.copy(
+                    setIndex = nextSet,
+                    phase = Phase.WORK,
+                    workElapsed = 0,
+                    restLeft = 0,
+                    side = Side.first,
+                )
             }
             return
         }
@@ -239,6 +359,7 @@ class SessionViewModel(
                     phase = Phase.WORK,
                     workElapsed = 0,
                     restLeft = 0,
+                    side = Side.first,
                 )
             }
         }
@@ -250,11 +371,12 @@ class SessionViewModel(
             it.copy(
                 phase = Phase.FINISHED,
                 question = null,
-                summary = SessionSummary(elapsed, loggedSets, totalReps, totalSeconds),
+                summary = SessionSummary(elapsed, loggedSets, totalReps, totalSeconds, volumeKg),
             )
         }
         viewModelScope.launch {
             val id = sessionId.await()
+            if (id <= 0) return@launch
             if (loggedSets > 0) repo.finishSession(id, elapsed) else repo.abandonSession(id)
         }
     }
@@ -262,6 +384,23 @@ class SessionViewModel(
     /** Voortijdig stoppen via het kruisje. */
     fun quit() {
         if (_state.value.phase != Phase.FINISHED) finish()
+    }
+
+    /**
+     * Zet het doel van de vólgende set op wat je net deed plus één stap: deed je
+     * er 15, dan staat er bij set 2 een 16. Zo loopt de progressie ook bínnen een
+     * sessie door, en niet alleen van training tot training.
+     */
+    private fun Map<String, Map<Int, SetGoal>>.withGoalAfter(
+        exercise: Exercise,
+        setIndex: Int,
+        value: Int,
+        weightKg: Double?,
+    ): Map<String, Map<Int, SetGoal>> {
+        val nextSet = setIndex + 1
+        if (nextSet >= exercise.sets) return this
+        val goal = exercise.goalAfter(value, weightKg, GoalSource.LAST_SET)
+        return this + (exercise.id to (this[exercise.id].orEmpty() + (nextSet to goal)))
     }
 
     companion object {

@@ -3,6 +3,7 @@ package com.vlammie.fitness.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -28,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,31 +41,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.DisposableEffect
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
-import com.adamglin.phosphoricons.fill.Check
+import com.adamglin.phosphoricons.fill.ArrowUUpLeft
+import com.adamglin.phosphoricons.fill.CheckCircle
 import com.adamglin.phosphoricons.fill.Drop
 import com.adamglin.phosphoricons.fill.ForkKnife
 import com.adamglin.phosphoricons.fill.Lightning
 import com.adamglin.phosphoricons.fill.Play
 import com.vlammie.fitness.data.model.DayPlan
-import java.time.DayOfWeek
 import com.vlammie.fitness.data.model.Exercise
-import com.vlammie.fitness.data.model.NutritionPlan
 import com.vlammie.fitness.data.model.Program
+import com.vlammie.fitness.data.model.WorkoutDay
 import com.vlammie.fitness.ui.components.BigActionButton
 import com.vlammie.fitness.ui.components.FillCircle
 import com.vlammie.fitness.ui.components.FitCard
-import com.vlammie.fitness.ui.components.Sparkle
 import com.vlammie.fitness.ui.components.GlowBackdrop
+import com.vlammie.fitness.ui.components.filmGrain
 import com.vlammie.fitness.ui.components.SectionHeader
+import com.vlammie.fitness.ui.components.Sparkle
 import com.vlammie.fitness.ui.components.Tag
 import com.vlammie.fitness.ui.components.ThinProgressBar
 import com.vlammie.fitness.ui.theme.Accent
@@ -74,6 +78,8 @@ import com.vlammie.fitness.ui.theme.Surface3
 import com.vlammie.fitness.ui.theme.TextPrimary
 import com.vlammie.fitness.ui.theme.TextSecondary
 import com.vlammie.fitness.ui.theme.TextTertiary
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 @Composable
 fun HomeScreen(
@@ -100,6 +106,9 @@ fun HomeScreen(
         onStartSession = onStartSession,
         onOpenMeals = onOpenMeals,
         onOpenProgress = onOpenProgress,
+        onShiftDate = viewModel::shiftDate,
+        onSelectDate = viewModel::selectDate,
+        onToday = viewModel::goToToday,
     )
 }
 
@@ -110,6 +119,9 @@ internal fun HomeContent(
     onStartSession: (String) -> Unit,
     onOpenMeals: () -> Unit,
     onOpenProgress: () -> Unit,
+    onShiftDate: (Long) -> Unit = {},
+    onSelectDate: (LocalDate) -> Unit = {},
+    onToday: () -> Unit = {},
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val training = state.trainingDay
@@ -122,23 +134,63 @@ internal fun HomeContent(
         ) {
             item { Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars).height(12.dp)) }
 
-            item { WeekStrip(state) }
+            item { WeekStrip(state, onShiftDate, onSelectDate) }
 
             item {
-                Text(
-                    text = "VANDAAG",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (state.isToday) "VANDAAG" else dayLabel(state.date).uppercase(),
+                            style = MaterialTheme.typography.displayMedium,
+                            color = TextPrimary,
+                        )
+                        if (!state.isToday) {
+                            Text(
+                                text = shortDate(state.date) + if (state.isPast) " · terugkijken" else " · vooruitkijken",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextTertiary,
+                            )
+                        }
+                    }
+                    if (!state.isToday) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Surface2)
+                                .clickable(onClick = onToday)
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                PhosphorIcons.Fill.ArrowUUpLeft,
+                                contentDescription = null,
+                                tint = Accent,
+                                modifier = Modifier.size(15.dp),
+                            )
+                            Text("Vandaag", style = MaterialTheme.typography.labelLarge, color = Accent)
+                        }
+                    }
+                }
             }
 
             item { TodayHeroCard(state) }
 
+            if (state.logged.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = if (state.isToday) "Al gedaan" else "Wat je deed",
+                        action = "${state.logged.sumOf { it.sets }} sets",
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+                items(state.logged, key = { it.name }) { logged -> LoggedRow(logged) }
+            }
+
             if (training != null) {
                 item {
                     SectionHeader(
-                        title = "Te doen",
+                        title = if (state.isPast) "Stond gepland" else "Te doen",
                         action = "${state.checkedCount}/${training.exercises.size}",
                     )
                 }
@@ -161,64 +213,135 @@ internal fun HomeContent(
                     modifier = Modifier.padding(top = 6.dp),
                 )
             }
-            items(state.upcoming, key = { it.date.toString() }) { day -> UpcomingRow(day) }
+            items(state.upcoming, key = { it.date.toString() }) { day ->
+                UpcomingRow(day, onClick = { onSelectDate(day.date) })
+            }
         }
 
         // Vaste actieknop onderaan, met een scrim zodat de lijst er netjes onder wegvalt.
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Ink, Ink)))
-                .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 16.dp),
-        ) {
-            BigActionButton(
-                text = if (training != null) "Sessie starten" else "Toch trainen",
-                icon = PhosphorIcons.Fill.Play,
-                onClick = {
-                    if (training != null) onStartSession(training.id) else showPicker = true
-                },
+        Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
+            // Korrel over de scrim: dat dithert het verloop naar zwart, dus geen banding.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .filmGrain(0.06f)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Ink, Ink)))
             )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 16.dp),
+            ) {
+                if (state.isToday) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = "Andere workout kiezen",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = TextSecondary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { showPicker = true }
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                        )
+                    }
+                    BigActionButton(
+                        text = if (training != null) "Sessie starten" else "Toch trainen",
+                        icon = PhosphorIcons.Fill.Play,
+                        onClick = {
+                            if (training != null) onStartSession(training.id) else showPicker = true
+                        },
+                    )
+                } else {
+                    BigActionButton(
+                        text = "Terug naar vandaag",
+                        icon = PhosphorIcons.Fill.ArrowUUpLeft,
+                        onClick = onToday,
+                    )
+                }
+            }
         }
     }
 
     if (showPicker) {
         WorkoutPickerDialog(
+            days = state.pickableDays,
             onDismiss = { showPicker = false },
             onPick = { dayId ->
                 showPicker = false
                 onStartSession(dayId)
             },
-            route = state.route,
         )
     }
 }
 
+/**
+ * De weekstrook. Tik op een dag om hem te openen, of houd vast en sleep naar
+ * links/rechts om door de dagen te bladeren — terug om te zien wat je toen deed,
+ * vooruit om te zien wat eraan komt.
+ */
 @Composable
-private fun WeekStrip(state: HomeUiState) {
+private fun WeekStrip(
+    state: HomeUiState,
+    onShiftDate: (Long) -> Unit,
+    onSelectDate: (LocalDate) -> Unit,
+) {
     val monday = state.date.with(DayOfWeek.MONDAY)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .pointerInput(Unit) {
+                var travelled = 0f
+                detectHorizontalDragGestures(
+                    onDragEnd = { travelled = 0f },
+                    onDragCancel = { travelled = 0f },
+                ) { change, drag ->
+                    change.consume()
+                    travelled += drag
+                    val step = (size.width / 7f).coerceAtLeast(1f)
+                    while (travelled <= -step) {
+                        travelled += step
+                        onShiftDate(1)
+                    }
+                    while (travelled >= step) {
+                        travelled -= step
+                        onShiftDate(-1)
+                    }
+                }
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         (0..6).forEach { offset ->
             val day = monday.plusDays(offset.toLong())
-            val isToday = day == state.date
-            val isTraining = Program.planFor(state.route, day.dayOfWeek) is DayPlan.Training
+            val selected = day == state.date
+            val isToday = day == state.today
+            val isTraining = Program.planFor(
+                state.days.filter { it.routeKey == state.route.key },
+                day.dayOfWeek,
+            ) is DayPlan.Training
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (selected) Surface2 else Color.Transparent)
+                    .clickable { onSelectDate(day) }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
                 Text(
                     text = dayLabel(day).take(2),
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (isToday) Accent else TextTertiary,
+                    color = if (selected) Accent else TextTertiary,
                 )
                 Text(
                     text = "${day.dayOfMonth}",
                     style = MaterialTheme.typography.headlineMedium,
                     color = when {
-                        isToday -> Accent
+                        selected -> Accent
+                        isToday -> TextPrimary
                         isTraining -> TextSecondary
                         else -> TextTertiary
                     },
@@ -229,8 +352,8 @@ private fun WeekStrip(state: HomeUiState) {
                         .clip(CircleShape)
                         .background(
                             when {
-                                !isTraining -> Color.Transparent
                                 isToday -> Accent
+                                !isTraining -> Color.Transparent
                                 else -> Surface3
                             }
                         ),
@@ -255,7 +378,7 @@ private fun HeroCardContent(state: HomeUiState) {
         when (val plan = state.plan) {
             is DayPlan.Training -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Tag("Route ${state.route.key}", background = Color(0x4D1A0500), color = Color.White)
+                    Tag("Route ${plan.day.routeKey}", background = Color(0x4D1A0500), color = Color.White)
                     Tag(
                         "${plan.day.exercises.size} oefeningen",
                         background = Color(0x4D1A0500),
@@ -292,10 +415,11 @@ private fun HeroCardContent(state: HomeUiState) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = if (state.sessionsToday > 0) {
-                        "Sessie afgerond — goed bezig."
-                    } else {
-                        "${state.checkedCount} van ${plan.day.exercises.size} afgevinkt"
+                    text = when {
+                        state.sessionsToday > 0 && state.isToday -> "Sessie afgerond — goed bezig."
+                        state.sessionsToday > 0 -> "Deze dag heb je getraind."
+                        state.isPast -> "Geen sessie gelogd op deze dag."
+                        else -> "${state.checkedCount} van ${plan.day.exercises.size} afgevinkt"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color(0xF2FFFFFF),
@@ -335,6 +459,42 @@ private fun HeroStat(value: String, label: String) {
     Column {
         Text(value, style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
         Text(label, style = MaterialTheme.typography.bodyMedium, color = Color(0xCCFFFFFF))
+    }
+}
+
+@Composable
+private fun LoggedRow(logged: LoggedExercise) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface1)
+            .border(1.dp, Hairline, shape)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(
+            PhosphorIcons.Fill.CheckCircle,
+            contentDescription = null,
+            tint = Accent,
+            modifier = Modifier.size(22.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(logged.name, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+            Text(
+                text = "${logged.sets} sets · ${logged.summary}" +
+                    (logged.weightLabel?.let { " · $it" } ?: ""),
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextTertiary,
+            )
+        }
+        Text(
+            text = "${logged.best}",
+            style = MaterialTheme.typography.headlineMedium,
+            color = Accent,
+        )
     }
 }
 
@@ -385,20 +545,25 @@ private fun NutritionStrip(state: HomeUiState, onOpen: () -> Unit) {
     FitCard(onClick = onOpen, modifier = Modifier.padding(top = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(PhosphorIcons.Fill.ForkKnife, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
-            Text("Voeding vandaag", style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+            Text(
+                text = if (state.isToday) "Voeding vandaag" else "Voeding die dag",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextPrimary,
+            )
             Spacer(Modifier.weight(1f))
             Text("Openen", style = MaterialTheme.typography.labelLarge, color = Accent)
         }
         Spacer(Modifier.height(14.dp))
-        ThinProgressBar(progress = state.nutrition.kcal / NutritionPlan.KCAL_MAX.toFloat())
+        val targets = state.nutrition.targets
+        ThinProgressBar(progress = state.nutrition.kcal / targets.kcal.toFloat())
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            MiniStat(PhosphorIcons.Fill.Lightning, "${state.nutrition.kcal}", "van ${NutritionPlan.KCAL_MAX} kcal")
-            MiniStat(null, "${state.nutrition.protein}g", "van ${NutritionPlan.PROTEIN_MAX}g eiwit")
+            MiniStat(PhosphorIcons.Fill.Lightning, "${state.nutrition.kcal}", "van ${targets.kcal} kcal")
+            MiniStat(null, "${state.nutrition.protein}g", "van ${targets.protein}g eiwit")
             MiniStat(
                 PhosphorIcons.Fill.Drop,
                 String.format("%.1fL", state.nutrition.waterMl / 1000f),
-                "van ${NutritionPlan.WATER_MAX_ML / 1000}L",
+                "van %.1fL".format(targets.waterMl / 1000f),
             )
         }
     }
@@ -422,7 +587,7 @@ private fun MiniStat(
 }
 
 @Composable
-private fun UpcomingRow(day: UpcomingDay) {
+private fun UpcomingRow(day: UpcomingDay, onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = Modifier
@@ -430,6 +595,7 @@ private fun UpcomingRow(day: UpcomingDay) {
             .clip(shape)
             .background(Color(0xFF0D0D0F))
             .border(1.dp, Color(0xFF1D1D22), shape)
+            .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -468,9 +634,10 @@ private fun UpcomingRow(day: UpcomingDay) {
     }
 }
 
+/** Alle workouts uit beide routes — zo doe je de ene keer A en de andere keer B. */
 @Composable
 private fun WorkoutPickerDialog(
-    route: com.vlammie.fitness.data.model.Route,
+    days: List<WorkoutDay>,
     onDismiss: () -> Unit,
     onPick: (String) -> Unit,
 ) {
@@ -479,8 +646,11 @@ private fun WorkoutPickerDialog(
         containerColor = Surface1,
         title = { Text("Welke workout?", style = MaterialTheme.typography.headlineMedium, color = TextPrimary) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Program.days(route).forEach { day ->
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(days, key = { it.id }) { day ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -489,7 +659,10 @@ private fun WorkoutPickerDialog(
                             .clickable { onPick(day.id) }
                             .padding(14.dp),
                     ) {
-                        Text(day.title, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Tag("Route ${day.routeKey}")
+                            Text(day.title, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+                        }
                         Text(day.focus, style = MaterialTheme.typography.bodyMedium, color = TextTertiary)
                     }
                 }
