@@ -53,6 +53,19 @@ const GEREEDSCHAP = [
         },
     },
     {
+        name: 'periode',
+        description: 'Gewerkte uren per dag tussen twee datums (beide meegeteld), met de verdeling over projecten. Hoogstens drie maanden. Handig voor een week- of maandoverzicht.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                van: { type: 'string', description: 'yyyy-mm-dd' },
+                tot: { type: 'string', description: 'yyyy-mm-dd, standaard vandaag' },
+            },
+            required: ['van'],
+            additionalProperties: false,
+        },
+    },
+    {
         name: 'dag',
         description: 'Wat er op een dag staat: gewerkte uren, de sessies met project en notitie, en opstaan en slapen.',
         inputSchema: {
@@ -169,6 +182,12 @@ async function roepAan(naam: string, args: Json, sleutel: string): Promise<unkno
         }
         case 'dag':
             return rpc('mate_dag', { p_sleutel: sleutel, p_datum: tekst(args.datum) || vandaag() });
+        case 'periode': {
+            const van = tekst(args.van);
+            const tot = tekst(args.tot) || vandaag();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(van) || !/^\d{4}-\d{2}-\d{2}$/.test(tot)) throw new Error('datums als yyyy-mm-dd');
+            return rpc('mate_periode', { p_sleutel: sleutel, p_van: van, p_tot: tot });
+        }
         default:
             throw new Error(`onbekend gereedschap: ${naam}`);
     }

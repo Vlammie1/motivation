@@ -48,7 +48,7 @@ Everything comes from tokens in `src/styles/design-tokens.css` — never hardcod
 
 ## Mate (MCP)
 
-`api/mcp.ts` speaks MCP over plain JSON-RPC POSTs (tools: `projecten`, `log_werk`, `log_slaap`, `dag`). It authenticates with a per-user key (`Authorization: Bearer mate_...`) that the user creates in the "Mate" modal. The function only has the anon key; the `security definer` functions in `supabase/migrations/20261003_mate_mcp.sql` check the key hash and write only that user's rows. `vercel.json` keeps `/api/*` out of the SPA rewrite.
+`api/mcp.ts` speaks MCP over plain JSON-RPC POSTs (tools: `projecten`, `log_werk`, `log_slaap`, `dag`, `periode`). It authenticates with a per-user key (`Authorization: Bearer mate_...`) that the user creates in the "Mate" modal. The function only has the anon key; the `security definer` functions in `supabase/migrations/20261003_mate_mcp.sql` check the key hash and write only that user's rows; `20261003_mate_periode.sql` adds `mate_periode` and compares `work_date` as text, because `work_logs.work_date` is a text column in this database. `vercel.json` keeps `/api/*` out of the SPA rewrite.
 
 ## Environment
 
