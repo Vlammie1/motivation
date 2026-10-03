@@ -1,14 +1,16 @@
-import { FolderKanban, ClipboardList, LogIn, LogOut, User } from 'lucide-react';
+import { FolderKanban, ClipboardList, LogIn, LogOut, User, Plug } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { AuthModal } from './AuthModal';
+import { MateModal } from './MateModal';
 
 export const Navigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, signOut } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isMateOpen, setIsMateOpen] = useState(false);
 
     const navItemStyle = (path: string | null) => {
         const isActive = !!path && location.pathname === path;
@@ -59,6 +61,14 @@ export const Navigation = () => {
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--spacing-2xs)' }}>
                     {user ? (
                         <>
+                            <button
+                                onClick={() => setIsMateOpen(true)}
+                                style={navItemStyle(null)}
+                                title="Mate koppelen"
+                            >
+                                <Plug size={16} />
+                                Mate
+                            </button>
                             <div style={{ ...navItemStyle(null), cursor: 'default' }}>
                                 <User size={16} />
                                 <span style={{ fontSize: 'var(--text-xs)' }}>{user.email}</span>
@@ -83,6 +93,7 @@ export const Navigation = () => {
                 </div>
             </nav>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            {isMateOpen && <MateModal isOpen onClose={() => setIsMateOpen(false)} />}
         </>
     );
 };

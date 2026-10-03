@@ -13,7 +13,7 @@ npm run preview   # Preview production build
 
 ## Architecture
 
-**Stack:** React 19 + TypeScript + Vite, deployed to Vercel. Supabase for auth, database, and RLS. No backend server — all data access is client-side via `@supabase/supabase-js`.
+**Stack:** React 19 + TypeScript + Vite, deployed to Vercel. Supabase for auth, database, and RLS. All app data access is client-side via `@supabase/supabase-js`. The one server piece is `api/mcp.ts`, a stateless MCP endpoint (Vercel function) through which Mate logs work sessions and sleep.
 
 **Routes (React Router):**
 - `/` — Work analytics & hour logging (`src/pages/WorkTrackerPage.tsx`); `/work` is a legacy alias
@@ -45,6 +45,10 @@ Everything comes from tokens in `src/styles/design-tokens.css` — never hardcod
 - Shared primitives live in `src/index.css`: `.card`, `.card-title`, `.label`, `.muted`, `.btn-primary`, `.stack`, `.modal-overlay`, `.modal-panel`, `.modal-header`, `.modal-close`.
 - Form rows: give every field a `.label` (use an `aria-hidden` spacer label above a button) so inputs and buttons share one baseline.
 - `--brutalist-border` / `--brutalist-shadow` are legacy aliases kept only so old call sites inherit the new look; prefer the real tokens in new code.
+
+## Mate (MCP)
+
+`api/mcp.ts` speaks MCP over plain JSON-RPC POSTs (tools: `projecten`, `log_werk`, `log_slaap`, `dag`). It authenticates with a per-user key (`Authorization: Bearer mate_...`) that the user creates in the "Mate" modal. The function only has the anon key; the `security definer` functions in `supabase/migrations/20261003_mate_mcp.sql` check the key hash and write only that user's rows. `vercel.json` keeps `/api/*` out of the SPA rewrite.
 
 ## Environment
 
