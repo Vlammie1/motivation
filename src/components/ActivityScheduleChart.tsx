@@ -48,8 +48,9 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
             let wake = timeToDecimal(habit?.wake_time);
             let sleep = timeToDecimal(habit?.sleep_time);
 
-            // Handle sleep after midnight
-            if (wake !== null && sleep !== null && sleep < wake) {
+            // Na middernacht gaan slapen hoort bij de avond ervoor, dus bovenaan de kolom. Ook zonder wektijd:
+            // een bedtijd voor het middaguur is altijd de nacht na deze dag.
+            if (sleep !== null && ((wake !== null && sleep < wake) || (wake === null && sleep < 12))) {
                 sleep += 24;
             }
 
@@ -356,7 +357,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                             onMouseLeave={() => setHoverInfo(null)}
                                         />
                                         {/* Awake Badge */}
-                                        <div style={{
+                                        {day.wake !== null && <div style={{
                                             position: 'absolute',
                                             left: '50%',
                                             transform: 'translateX(-50%)',
@@ -371,7 +372,7 @@ export const ActivityScheduleChart: React.FC<ActivityScheduleChartProps> = ({
                                             pointerEvents: 'none'
                                         }}>
                                             {day.awakeHours.toFixed(1)}h
-                                        </div>
+                                        </div>}
                                     </>
                                 )}
 
